@@ -1,0 +1,13 @@
+{
+  "name": "@sellfuse/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@sellfuse/types": "*"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@sellfuse/domain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@sellfuse/ai-gateway": "*",
+    "@sellfuse/marketplace-adapters": "*",
+    "@sellfuse/types": "*",
+    "@sellfuse/validation": "*",
+    "zod": "^4.5.4"
+  }
+}

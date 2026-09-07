@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.next/
+.expo/
+coverage/
+*.tsbuildinfo
+*.log
+.env
+.env.*
+!.env.example
+apps/api/uploads/
+apps/api/prisma/dev.db*
+.DS_Store

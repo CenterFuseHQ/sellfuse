@@ -1,0 +1,39 @@
+{
+  "name": "sellfuse",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SellFuse — List once. Sell everywhere.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20.9"
+  },
+  "scripts": {
+    "build:packages": "npm run build -w @sellfuse/types && npm run build -w @sellfuse/validation && npm run build -w @sellfuse/marketplace-adapters && npm run build -w @sellfuse/ai-gateway && npm run build -w @sellfuse/domain",
+    "build": "npm run build:packages && npm run build -w @sellfuse/api && npm run build -w @sellfuse/ai-gateway-server && npm run build -w @sellfuse/web",
+    "typecheck": "npm run build:packages && npm run typecheck -w @sellfuse/api && npm run typecheck -w @sellfuse/ai-gateway-server && npm run typecheck -w @sellfuse/web && npm run typecheck -w @sellfuse/mobile",
+    "lint": "eslint .",
+    "test": "npm run build:packages && vitest run",
+    "test:watch": "vitest",
+    "dev:web": "npm run dev -w @sellfuse/web",
+    "dev:api": "npm run dev -w @sellfuse/api",
+    "dev:gateway": "npm run dev -w @sellfuse/ai-gateway-server",
+    "dev:mobile": "npm run start -w @sellfuse/mobile",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "audit": "npm audit --audit-level=high",
+    "security:ai": "node scripts/check-no-external-ai.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.1",
+    "vitest": "^4.0.15"
+  }
+}
