@@ -25,6 +25,19 @@ describe("listing lifecycle", () => {
     );
   });
 
+  it("requires a destination and validates where the item sold", async () => {
+    const workflow = new ListingWorkflow();
+    expect(() => workflow.create("user-1", master, [])).toThrow(
+      "NO_MARKETPLACE_SELECTED",
+    );
+    const listing = workflow.create("user-1", master, ["MERCARI"]);
+    workflow.review(listing.id, "user-1");
+    await workflow.publish(listing.id, "user-1");
+    await expect(
+      workflow.markSold(listing.id, "user-1", "EBAY"),
+    ).rejects.toThrow("SOLD_MARKETPLACE_NOT_LISTED");
+  });
+
   it("marks sold once and creates delist actions for every destination", async () => {
     const workflow = new ListingWorkflow();
     const listing = workflow.create("user-1", master, [

@@ -24,11 +24,23 @@ services:
       AI_EMBEDDING_MODEL: ${AI_EMBEDDING_MODEL:-embeddinggemma}
       AI_GATEWAY_TOKEN: ${AI_GATEWAY_TOKEN:?set AI_GATEWAY_TOKEN}
       AI_GATEWAY_PORT: 8787
+      AI_GATEWAY_HOST: 0.0.0.0
     ports:
       - "127.0.0.1:8787:8787"
     depends_on:
       ollama:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8787/health',{headers:{authorization:'Bearer '+process.env.AI_GATEWAY_TOKEN}}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
 
   postgres:
     image: postgres:17-alpine

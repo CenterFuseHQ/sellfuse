@@ -13,3 +13,7 @@ Evidence types:
 - `AI_ESTIMATE_ONLY`: a disclosure marker used when identification exists but market evidence does not. It never carries an invented comparable price.
 
 The valuation service computes price outputs from validated evidence. The model can explain relevance and select existing evidence IDs; it cannot originate evidence or price values. Mixed currencies fail closed until a verified conversion is supplied.
+
+## Private connector protocol
+
+When configured, the SellFuse API sends `POST /v1/search` to `MARKET_DATA_BASE_URL` with an internal bearer `MARKET_DATA_TOKEN`. The body contains an allow-listed `sourceId` and the identification query. The response is `{ "evidence": [...] }`; every record is validated again inside SellFuse. Configure the URL, token, and comma-separated `MARKET_DATA_ALLOWED_SOURCES` together. If they are absent, SellFuse honestly reports no market evidence. If a source is down, the listing flow continues and adds a source-unavailable limitation.

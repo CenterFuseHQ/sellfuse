@@ -14,6 +14,7 @@ const forbiddenHosts = new Set([
 
 export interface GatewayConfig {
   port: number;
+  host: string;
   token: string;
   maxConcurrency: number;
   provider: SelfHostedModelProvider;
@@ -23,6 +24,17 @@ function required(env: NodeJS.ProcessEnv, key: string): string {
   const value = env[key]?.trim();
   if (!value) throw new Error(`${key} is required`);
   return value;
+}
+
+function positiveInteger(
+  value: string | undefined,
+  fallback: number,
+  key: string,
+): number {
+  const parsed = Number(value ?? fallback);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0)
+    throw new Error(`${key} must be a positive integer`);
+  return parsed;
 }
 
 export function loadGatewayConfig(env: NodeJS.ProcessEnv): GatewayConfig {
@@ -46,13 +58,22 @@ export function loadGatewayConfig(env: NodeJS.ProcessEnv): GatewayConfig {
     textModel: required(env, "AI_TEXT_MODEL"),
     visionModel: required(env, "AI_VISION_MODEL"),
     embeddingModel: required(env, "AI_EMBEDDING_MODEL"),
-    timeoutMs: Number(env.AI_REQUEST_TIMEOUT_MS ?? 45_000),
+    timeoutMs: positiveInteger(
+      env.AI_REQUEST_TIMEOUT_MS,
+      45_000,
+      "AI_REQUEST_TIMEOUT_MS",
+    ),
     ...(env.AI_RUNTIME_TOKEN ? { runtimeToken: env.AI_RUNTIME_TOKEN } : {}),
   };
   return {
-    port: Number(env.AI_GATEWAY_PORT ?? 8787),
+    port: positiveInteger(env.AI_GATEWAY_PORT, 8787, "AI_GATEWAY_PORT"),
+    host: env.AI_GATEWAY_HOST?.trim() || "127.0.0.1",
     token,
-    maxConcurrency: Number(env.AI_MAX_CONCURRENCY ?? 2),
+    maxConcurrency: positiveInteger(
+      env.AI_MAX_CONCURRENCY,
+      2,
+      "AI_MAX_CONCURRENCY",
+    ),
     provider:
       runtime === "ollama"
         ? new OllamaProvider(options)

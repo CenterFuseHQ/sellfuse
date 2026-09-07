@@ -30,6 +30,7 @@ export class ListingWorkflow {
     masterListing: MasterListing,
     marketplaces: Marketplace[],
   ): WorkflowListing {
+    if (!marketplaces.length) throw new Error("NO_MARKETPLACE_SELECTED");
     const safe = MasterListingSchema.parse({
       ...masterListing,
       sellerReviewed: false,
@@ -92,6 +93,8 @@ export class ListingWorkflow {
     const listing = this.requireOwned(id, userId);
     if (listing.status !== "PUBLISHED")
       throw new Error("LISTING_NOT_PUBLISHED");
+    if (!listing.drafts.some((draft) => draft.marketplace === soldOn))
+      throw new Error("SOLD_MARKETPLACE_NOT_LISTED");
     listing.soldActions = await Promise.all(
       listing.drafts.map((draft) => {
         const adapter = this.adapters.get(draft.marketplace)!;

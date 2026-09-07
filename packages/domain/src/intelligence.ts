@@ -6,6 +6,7 @@ import type {
   MasterListing,
 } from "@sellfuse/types";
 import { createAdapterRegistry } from "@sellfuse/marketplace-adapters";
+import { z } from "zod";
 import {
   AnalyzeItemRequestSchema,
   ItemAnalysisSchema,
@@ -26,41 +27,10 @@ import {
 import { valueFromEvidence } from "./valuation.js";
 
 const schemas = {
-  identification: {
-    type: "object",
-    additionalProperties: false,
-    required: [
-      "likelyItem",
-      "category",
-      "visibleDamage",
-      "attributes",
-      "confidence",
-      "missingInformation",
-      "evidence",
-    ],
-  },
-  valuation: {
-    type: "object",
-    additionalProperties: false,
-    required: ["selectedEvidenceIds", "reasoning", "confidence"],
-  },
-  listing: {
-    type: "object",
-    additionalProperties: false,
-    required: [
-      "title",
-      "category",
-      "description",
-      "notableFeatures",
-      "defects",
-      "searchKeywords",
-      "fulfillment",
-      "quantity",
-      "missingInformation",
-      "sellerReviewed",
-    ],
-  },
-} as const;
+  identification: z.toJSONSchema(ItemAnalysisSchema),
+  valuation: z.toJSONSchema(PricingSuggestionSchema),
+  listing: z.toJSONSchema(MasterListingSchema),
+};
 
 export interface PrepareListingInput {
   photos: ImageInput[];
@@ -107,9 +77,11 @@ export class SellFuseIntelligenceService {
           rawAnalysis.content,
           "item analysis",
           ItemAnalysisSchema,
+          schemas.identification,
         ),
       );
-      const evidence = await this.marketData.retrieve(analysis);
+      const marketData = await this.marketData.retrieve(analysis);
+      const evidence = marketData.evidence;
       let selection: PricingSuggestion | undefined;
       if (evidence.length) {
         const rawValuation = await this.gateway.infer({
@@ -125,9 +97,14 @@ export class SellFuseIntelligenceService {
           rawValuation.content,
           "valuation reasoning",
           PricingSuggestionSchema,
+          schemas.valuation,
         );
       }
-      const valuation = valueFromEvidence(analysis, evidence, selection);
+      const baseValuation = valueFromEvidence(analysis, evidence, selection);
+      const valuation = {
+        ...baseValuation,
+        limitations: [...baseValuation.limitations, ...marketData.limitations],
+      };
       const rawListing = await this.gateway.infer({
         modelRole: "TEXT_MODEL",
         messages: [
@@ -144,6 +121,7 @@ export class SellFuseIntelligenceService {
         rawListing.content,
         "master listing",
         MasterListingSchema,
+        schemas.listing,
       );
       const masterListing = this.enforceListingFacts(
         generatedListing,
@@ -229,6 +207,7 @@ export class SellFuseIntelligenceService {
         value: unknown,
       ): { success: true; data: T } | { success: false };
     },
+    responseSchema: Record<string, unknown>,
   ): Promise<T> {
     try {
       const parsed = schema.safeParse(this.parse(raw));
@@ -239,7 +218,7 @@ export class SellFuseIntelligenceService {
     const repair = await this.gateway.infer({
       modelRole: "TEXT_MODEL",
       messages: [{ role: "system", content: repairPrompt(raw, name) }],
-      responseSchema: { type: "object", additionalProperties: false },
+      responseSchema,
       temperature: 0,
       maxTokens: 1800,
     });

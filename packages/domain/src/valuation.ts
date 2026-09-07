@@ -112,6 +112,14 @@ export function valueFromEvidence(
   }
 
   const recommendedAsk = roundMoney(anchor * 1.05);
+  const reliabilityScore = { HIGH: 1, MEDIUM: 0.72, LOW: 0.35 } as const;
+  const evidenceConfidenceCap =
+    selected.reduce(
+      (total, entry) => total + reliabilityScore[entry.reliability],
+      0,
+    ) / selected.length;
+  if (evidenceConfidenceCap < 0.5)
+    limitations.push("The available evidence is marked low reliability.");
   return {
     recommendedAsk,
     quickSalePrice: roundMoney(anchor * 0.85),
@@ -121,6 +129,7 @@ export function valueFromEvidence(
       confidence,
       selection?.confidence ?? confidence,
       analysis.confidence,
+      evidenceConfidenceCap,
     ),
     evidence: selected,
     limitations,

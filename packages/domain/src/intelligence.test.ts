@@ -3,6 +3,7 @@ import { GatewayUnavailableError, MockAiGateway } from "@sellfuse/ai-gateway";
 import {
   AllowedMarketDataRetriever,
   MockMarketDataSource,
+  type MarketDataSource,
 } from "./market-data.js";
 import { SellFuseIntelligenceService } from "./intelligence.js";
 
@@ -125,6 +126,25 @@ describe("SellFuse intelligence workflow", () => {
     expect(result.nextAction).toBe("REVIEW");
   });
 
+  it("sends complete constrained schemas to the local gateway", async () => {
+    const gateway = new MockAiGateway([
+      JSON.stringify(analysis),
+      JSON.stringify(master),
+    ]);
+    const intelligence = new SellFuseIntelligenceService(
+      gateway,
+      new AllowedMarketDataRetriever([], []),
+    );
+    await intelligence.prepare({ photos: [photo], marketplaces: [] });
+    const schema = gateway.requests[0]?.responseSchema as {
+      properties?: Record<string, unknown>;
+      additionalProperties?: boolean;
+    };
+    expect(schema.properties).toHaveProperty("likelyItem");
+    expect(schema.properties).toHaveProperty("evidence");
+    expect(schema.additionalProperties).toBe(false);
+  });
+
   it("removes unsupported specifics when identification is uncertain", async () => {
     const uncertain = {
       ...analysis,
@@ -156,6 +176,29 @@ describe("SellFuse intelligence workflow", () => {
     expect(result.valuation.limitations[0]).toMatch(
       /No reliable market evidence/,
     );
+  });
+
+  it("continues safely when an allowed market data source is unavailable", async () => {
+    const failingSource: MarketDataSource = {
+      id: "licensed-source",
+      async search() {
+        throw new Error("upstream details must not leak");
+      },
+    };
+    const intelligence = new SellFuseIntelligenceService(
+      new MockAiGateway([JSON.stringify(analysis), JSON.stringify(master)]),
+      new AllowedMarketDataRetriever([failingSource], ["licensed-source"]),
+    );
+    const result = await intelligence.prepare({
+      photos: [photo],
+      marketplaces: [],
+    });
+    expect(result.nextAction).toBe("REVIEW");
+    expect(result.valuation.recommendedAsk).toBeNull();
+    expect(result.valuation.limitations).toContain(
+      "Market data source licensed-source was unavailable.",
+    );
+    expect(JSON.stringify(result)).not.toContain("upstream details");
   });
 
   it("prevents a model from injecting a hallucinated price", async () => {

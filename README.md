@@ -44,6 +44,8 @@ npm run dev:api
 npm run dev:web
 ```
 
+Use the web screen to create a local account or sign in. The API issues a short-lived signed user token; the separate AI gateway credential remains server-side.
+
 In a separate terminal, install the configured local models:
 
 ```bash
@@ -52,7 +54,7 @@ ollama pull gemma3:4b
 ollama pull embeddinggemma
 ```
 
-The manual listing workflow works when Ollama is stopped. See [Self-hosted AI](docs/self-hosted-ai.md), [gateway protocol](docs/ai-gateway-protocol.md), and the [marketplace capability matrix](docs/marketplace-capability-matrix.md).
+The manual listing workflow works when Ollama is stopped. See [Self-hosted AI](docs/self-hosted-ai.md), [gateway protocol](docs/ai-gateway-protocol.md), [market evidence](docs/market-evidence.md), [API authentication](docs/api-authentication.md), the [marketplace capability matrix](docs/marketplace-capability-matrix.md), and [competitive positioning](docs/competitive-landscape.md).
 
 ## Commands
 
@@ -70,5 +72,4 @@ npm run security:ai
 - Marketplace adapters are capability-aware. eBay and Pinterest have official publishing APIs, but real credentials are not configured or claimed as tested in this repository.
 - Other initial marketplaces use explicit assisted or unavailable states; no scraping, session-cookie reuse, CAPTCHA bypass, or password collection exists.
 - Market-data connectors are a separate allow-listed interface. This repository ships no unlicensed scraping connector and makes no claim of live sold-data access.
-- The included API persistence is an in-memory development adapter. The relational production model is specified in `apps/api/prisma/schema.prisma` and should be wired to PostgreSQL before production deployment.
-- Legal pages are product-ready placeholders and require counsel review before launch.
+- Accounts, listings, and workflow state use in-memory development adapters and reset when the API restarts. Durable production persistence remains required.

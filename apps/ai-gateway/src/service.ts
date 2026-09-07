@@ -47,6 +47,8 @@ export class GatewayService {
   }
 
   async handle(request: GatewayHttpRequest): Promise<GatewayHttpResponse> {
+    if (!this.authenticated(request.authorization))
+      return { status: 401, body: { error: "UNAUTHORIZED" } };
     if (request.method === "GET" && request.path === "/health") {
       const healthy = await this.provider.health();
       return {
@@ -54,8 +56,6 @@ export class GatewayService {
         body: { status: healthy ? "ok" : "unavailable" },
       };
     }
-    if (!this.authenticated(request.authorization))
-      return { status: 401, body: { error: "UNAUTHORIZED" } };
     if (request.method !== "POST")
       return { status: 405, body: { error: "METHOD_NOT_ALLOWED" } };
     try {

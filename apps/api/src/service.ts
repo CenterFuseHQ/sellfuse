@@ -2,6 +2,7 @@ import type { Marketplace, MasterListing } from "@sellfuse/types";
 import { MARKETPLACES } from "@sellfuse/types";
 import { marketplaceCapabilities } from "@sellfuse/marketplace-adapters";
 import { ListingWorkflow, SellFuseIntelligenceService } from "@sellfuse/domain";
+import { AnalyzeItemRequestSchema } from "@sellfuse/validation";
 
 export interface ApiRequest {
   method: string;
@@ -47,11 +48,12 @@ export class SellFuseApiService {
         request.path === "/v1/intelligence/prepare"
       ) {
         const body = bodyRecord(request.body);
+        const analysisInput = AnalyzeItemRequestSchema.parse(body);
         const result = await this.intelligence.prepare({
-          photos: body.photos as never,
+          photos: analysisInput.photos,
           marketplaces: marketplaceList(body.marketplaces),
-          ...(typeof body.sellerNotes === "string"
-            ? { sellerNotes: body.sellerNotes }
+          ...(analysisInput.sellerNotes
+            ? { sellerNotes: analysisInput.sellerNotes }
             : {}),
         });
         return { status: 200, body: result };

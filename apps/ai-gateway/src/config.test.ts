@@ -28,4 +28,13 @@ describe("gateway configuration", () => {
       }),
     ).toThrow(/forbidden/);
   });
+
+  it("rejects invalid resource limits", () => {
+    expect(() =>
+      loadGatewayConfig({ ...base, AI_MAX_CONCURRENCY: "0" }),
+    ).toThrow(/positive integer/);
+    expect(() =>
+      loadGatewayConfig({ ...base, AI_REQUEST_TIMEOUT_MS: "not-a-number" }),
+    ).toThrow(/positive integer/);
+  });
 });

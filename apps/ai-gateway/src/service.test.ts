@@ -55,6 +55,9 @@ describe("private Nader AI Gateway", () => {
         })
       ).status,
     ).toBe(200);
+    expect(
+      (await gateway.handle({ method: "GET", path: "/health" })).status,
+    ).toBe(401);
   });
 
   it("returns a sanitized unavailable response without fallback", async () => {
@@ -68,6 +71,29 @@ describe("private Nader AI Gateway", () => {
     expect(response).toEqual({
       status: 503,
       body: { error: "MODEL_UNAVAILABLE" },
+    });
+  });
+
+  it("rejects images whose bytes do not match their declared type", async () => {
+    const gateway = new GatewayService(token, provider());
+    const response = await gateway.handle({
+      method: "POST",
+      path: "/v1/inference",
+      authorization: `Bearer ${token}`,
+      body: {
+        ...request,
+        modelRole: "VISION_MODEL",
+        images: [
+          {
+            mimeType: "image/jpeg",
+            base64: Buffer.from("this is not a jpeg").toString("base64"),
+          },
+        ],
+      },
+    });
+    expect(response).toEqual({
+      status: 400,
+      body: { error: "INVALID_REQUEST" },
     });
   });
 });

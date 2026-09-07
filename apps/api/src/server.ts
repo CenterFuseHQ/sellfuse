@@ -2,9 +2,11 @@ import { createServer } from "node:http";
 import { HttpAiGatewayClient } from "@sellfuse/ai-gateway";
 import {
   AllowedMarketDataRetriever,
+  HttpMarketDataSource,
   NoMarketDataSource,
   SellFuseIntelligenceService,
 } from "@sellfuse/domain";
+import { AuthService } from "./auth.js";
 import { SellFuseApiService } from "./service.js";
 
 const gatewayUrl = process.env.AI_GATEWAY_BASE_URL?.trim();
@@ -19,23 +21,63 @@ const gateway = new HttpAiGatewayClient({
   tenantId: "sellfuse",
   timeoutMs: 50_000,
 });
+const marketDataUrl = process.env.MARKET_DATA_BASE_URL?.trim();
+const marketDataToken = process.env.MARKET_DATA_TOKEN?.trim();
+const allowedMarketSources = (process.env.MARKET_DATA_ALLOWED_SOURCES ?? "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+const hasAnyMarketConfig = Boolean(
+  marketDataUrl || marketDataToken || allowedMarketSources.length,
+);
+if (
+  hasAnyMarketConfig &&
+  (!marketDataUrl || !marketDataToken || !allowedMarketSources.length)
+)
+  throw new Error(
+    "MARKET_DATA_BASE_URL, MARKET_DATA_TOKEN, and MARKET_DATA_ALLOWED_SOURCES must be configured together",
+  );
+const marketSources = marketDataUrl
+  ? allowedMarketSources.map(
+      (id) =>
+        new HttpMarketDataSource({
+          id,
+          baseUrl: marketDataUrl,
+          token: marketDataToken!,
+        }),
+    )
+  : [new NoMarketDataSource()];
 const marketData = new AllowedMarketDataRetriever(
-  [new NoMarketDataSource()],
-  [],
+  marketSources,
+  allowedMarketSources,
 );
 const service = new SellFuseApiService(
   new SellFuseIntelligenceService(gateway, marketData),
 );
+const auth = new AuthService(process.env.JWT_SECRET?.trim() ?? "");
 const maxBodyBytes = 70 * 1024 * 1024;
+const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
+const responseHeaders = {
+  "content-type": "application/json",
+  "cache-control": "no-store",
+  "access-control-allow-origin": webOrigin,
+  "access-control-allow-headers": "authorization, content-type",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  vary: "Origin",
+};
 
 createServer(async (request, response) => {
+  if (request.method === "OPTIONS") {
+    response.writeHead(204, responseHeaders).end();
+    return;
+  }
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
     const buffer = Buffer.from(chunk);
     size += buffer.length;
     if (size > maxBodyBytes) {
-      response.writeHead(413).end();
+      response.writeHead(413, responseHeaders).end();
       return;
     }
     chunks.push(buffer);
@@ -47,27 +89,56 @@ createServer(async (request, response) => {
       : undefined;
   } catch {
     response
-      .writeHead(400, { "content-type": "application/json" })
+      .writeHead(400, responseHeaders)
       .end(JSON.stringify({ error: "INVALID_JSON" }));
     return;
   }
-  const userId =
-    typeof request.headers["x-sellfuse-user-id"] === "string"
-      ? request.headers["x-sellfuse-user-id"]
-      : "development-user";
+  const path = new URL(request.url ?? "/", "http://api.internal").pathname;
+  if (
+    request.method === "POST" &&
+    (path === "/v1/auth/register" || path === "/v1/auth/login")
+  ) {
+    try {
+      const result =
+        path === "/v1/auth/register"
+          ? await auth.register(body)
+          : await auth.login(body);
+      response
+        .writeHead(path.endsWith("register") ? 201 : 200, responseHeaders)
+        .end(JSON.stringify(result));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "INVALID_REQUEST";
+      const status =
+        message === "ACCOUNT_ALREADY_EXISTS"
+          ? 409
+          : message === "INVALID_CREDENTIALS"
+            ? 401
+            : 400;
+      response
+        .writeHead(status, responseHeaders)
+        .end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+  const authorization = Array.isArray(request.headers.authorization)
+    ? request.headers.authorization[0]
+    : request.headers.authorization;
+  const userId = auth.authenticate(authorization);
+  if (!userId) {
+    response
+      .writeHead(401, responseHeaders)
+      .end(JSON.stringify({ error: "UNAUTHORIZED" }));
+    return;
+  }
   const result = await service.handle({
     method: request.method ?? "GET",
-    path: new URL(request.url ?? "/", "http://api.internal").pathname,
+    path,
     userId,
     ...(body === undefined ? {} : { body }),
   });
   response
-    .writeHead(result.status, {
-      "content-type": "application/json",
-      "cache-control": "no-store",
-      "access-control-allow-origin":
-        process.env.WEB_ORIGIN ?? "http://localhost:3000",
-    })
+    .writeHead(result.status, responseHeaders)
     .end(JSON.stringify(result.body));
 }).listen(Number(process.env.API_PORT ?? 4000), "127.0.0.1", () =>
   process.stdout.write("SellFuse API listening on 127.0.0.1\n"),

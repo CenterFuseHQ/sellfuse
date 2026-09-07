@@ -52,8 +52,8 @@ const server = createServer(async (request, response) => {
     .end(JSON.stringify(result.body));
 });
 
-server.listen(config.port, "127.0.0.1", () =>
+server.listen(config.port, config.host, () =>
   process.stdout.write(
-    `Nader AI Gateway listening on 127.0.0.1:${config.port}\n`,
+    `Nader AI Gateway listening on ${config.host}:${config.port}\n`,
   ),
 );

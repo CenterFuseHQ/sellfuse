@@ -30,9 +30,7 @@ export interface DelistResult {
 export interface MarketplaceAdapter {
   readonly marketplace: Marketplace;
   capabilities(): MarketplaceCapability;
-  connect(
-    userId: string,
-  ): Promise<{
+  connect(userId: string): Promise<{
     authorizationUrl?: string;
     status: "CONNECTED" | "ACTION_REQUIRED";
   }>;
