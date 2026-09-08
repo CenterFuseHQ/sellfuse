@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createAdapterRegistry, marketplaceCapabilities } from "./index.js";
+import { createAdapterRegistry, marketplaceCapabilities, marketplaceProviderRegistry } from "./index.js";
 
 const listing = {
   title: "A".repeat(200),
@@ -56,5 +56,13 @@ describe("marketplace adapters", () => {
         .filter((entry) => entry.implementationStatus === "AVAILABLE")
         .every((entry) => entry.mode === "ASSISTED"),
     ).toBe(true);
+  });
+
+  it("never promotes a handoff or planned API to an available capability", () => {
+    const registry = marketplaceProviderRegistry();
+    expect(registry.list()).toHaveLength(9);
+    expect(registry.supports("FACEBOOK_MARKETPLACE", "LISTINGS_CREATE")).toBe(false);
+    expect(registry.supports("EBAY", "LISTINGS_CREATE")).toBe(false);
+    expect(registry.get("FACEBOOK_MARKETPLACE")?.availability).toBe("MANUAL_ONLY");
   });
 });

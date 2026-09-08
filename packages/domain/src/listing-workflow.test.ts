@@ -33,6 +33,13 @@ describe("listing lifecycle", () => {
     const listing = workflow.create("user-1", master, ["MERCARI"]);
     workflow.review(listing.id, "user-1");
     await workflow.publish(listing.id, "user-1");
+    expect(workflow.get(listing.id, "user-1").channelPublications).toEqual([
+      expect.objectContaining({
+        marketplace: "MERCARI",
+        status: "ACTION_REQUIRED",
+        idempotencyKey: `${listing.id}:MERCARI`,
+      }),
+    ]);
     await expect(
       workflow.markSold(listing.id, "user-1", "EBAY"),
     ).rejects.toThrow("SOLD_MARKETPLACE_NOT_LISTED");
@@ -57,6 +64,11 @@ describe("listing lifecycle", () => {
     expect(
       sold.soldActions.every(
         (action) => action.status === "MANUAL_ACTION_REQUIRED",
+      ),
+    ).toBe(true);
+    expect(
+      sold.channelPublications.every(
+        (publication) => publication.status === "ACTION_REQUIRED",
       ),
     ).toBe(true);
   });

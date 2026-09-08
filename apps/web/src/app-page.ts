@@ -1,17 +1,21 @@
-export function renderAppPage(apiUrl: string): string {
-  const safeApiUrl = JSON.stringify(apiUrl.replace(/\/$/, ""));
+import { PRODUCTS, resolveProductUrls, type ProductUrls } from "@centerfuse/config";
+import { familyStyles, renderFamilyFooter, renderFamilyHeader } from "@centerfuse/ui";
+
+export function renderAppPage(apiUrl: string, urls: ProductUrls = resolveProductUrls({})): string {
+  const safeApiUrl = JSON.stringify(apiUrl.replace(/\/$/, "")).replaceAll("<", "\\u003c");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SellFuse — List once. Sell everywhere.</title>
 <style>
+${familyStyles(PRODUCTS.SELLFUSE)}
 :root{font-family:Inter,ui-sans-serif,system-ui;color:#173126;background:#f4f1e9}*{box-sizing:border-box}body{margin:0}main{max-width:960px;margin:auto;padding:48px 20px 96px}header{margin-bottom:36px}.eyebrow{color:#d9512d;font-weight:800;letter-spacing:.08em;text-transform:uppercase}h1{font-size:clamp(2.6rem,8vw,5.8rem);line-height:.93;margin:.2em 0}h2{margin-top:0}.lede{font-size:1.2rem;max-width:650px;line-height:1.6}.card{background:#fff;border:1px solid #d8ddd8;border-radius:22px;padding:24px;margin:18px 0;box-shadow:0 8px 30px #1731260d}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}label{display:grid;gap:7px;font-weight:700}input,textarea,select{width:100%;padding:12px;border:1px solid #aebbb4;border-radius:10px;font:inherit}textarea{min-height:110px}button{border:0;border-radius:999px;padding:12px 19px;background:#173f2d;color:#fff;font-weight:800;cursor:pointer}button.secondary{background:#e9eee9;color:#173126}button:disabled{opacity:.5;cursor:wait}.marketplaces{display:flex;flex-wrap:wrap;gap:9px}.marketplaces label{display:flex;background:#eef1ed;border-radius:999px;padding:9px 13px;font-weight:600}.marketplaces input{width:auto}.steps{display:flex;gap:7px;overflow:auto;padding:4px 0 18px}.step{white-space:nowrap;background:#e5eae5;border-radius:999px;padding:7px 11px;font-size:.82rem}.price{font-size:2.5rem;font-weight:900}.muted{color:#5e6d65}.warning{background:#fff2dd;border-color:#efc879}.success{background:#e7f5e9;border-color:#9bc7a0}.evidence{border-left:4px solid #d9512d;padding-left:14px;margin:13px 0}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}pre{white-space:pre-wrap;background:#f5f7f4;padding:12px;border-radius:10px}.hidden{display:none}.status{min-height:24px;font-weight:700}
-</style></head><body><main>
+</style></head><body>${renderFamilyHeader("SELLFUSE", urls)}<main id="main">
 <header><div class="eyebrow">AI selling assistant for ordinary people</div><h1>Take pictures.<br>Sell with confidence.</h1><p class="lede">SellFuse identifies the item, separates market evidence from AI reasoning, prepares each marketplace draft, and leaves the final call with you.</p></header>
 <div class="steps"><span class="step">1 Photos</span><span class="step">2 Identify</span><span class="step">3 Value</span><span class="step">4 Prepare</span><span class="step">5 Review</span><span class="step">6 Publish</span><span class="step">7 Mark sold</span></div>
 <section id="auth" class="card"><h2>Start securely</h2><p class="muted">Create a local SellFuse account or sign in. Your private AI gateway token never reaches this page.</p><div class="grid"><label>Email<input id="email" type="email" autocomplete="email"></label><label>Password<input id="password" type="password" minlength="12" autocomplete="current-password"></label></div><div class="actions"><button id="login">Sign in</button><button id="register" class="secondary">Create account</button></div></section>
 <section id="capture" class="card hidden"><h2>What are you selling?</h2><label>Photos<input id="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple></label><label>What you already know (optional)<textarea id="notes" placeholder="It powers on; I bought it in 2022; the charger is included..."></textarea></label><h3>Where might you sell it?</h3><div id="marketplaces" class="marketplaces"></div><div class="actions"><button id="prepare">Identify and prepare</button></div></section>
 <div id="status" class="status" role="status" aria-live="polite"></div><section id="result" class="hidden"></section>
-</main><script>
+</main>${renderFamilyFooter(urls)}<script>
 const API=${safeApiUrl}; const marketplaceNames={EBAY:'eBay',PINTEREST:'Pinterest',FACEBOOK_MARKETPLACE:'Facebook Marketplace',INSTAGRAM:'Instagram',OFFERUP:'OfferUp',MERCARI:'Mercari',POSHMARK:'Poshmark',DEPOP:'Depop',CRAIGSLIST:'Craigslist'};
 let token=sessionStorage.getItem('sellfuseToken')||''; let current=null; let listingId='';
 const byId=(id)=>document.getElementById(id); const status=(message)=>byId('status').textContent=message;

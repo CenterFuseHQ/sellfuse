@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { renderCenterFuseHome, renderCenterFuseState } from "./page.js";
+describe("CenterFuse site", () => { it("renders a polished product home with accessible navigation", () => { const html = renderCenterFuseHome(); expect(html).toContain("CenterFuse"); expect(html).toContain("SellFuse"); expect(html).toContain("BuyFuse"); expect(html).toContain('id="main"'); }); it("renders loading, error, and not-found states", () => { expect(renderCenterFuseState("loading")).toContain("Loading CenterFuse"); expect(renderCenterFuseState("error")).toContain('role="alert"'); expect(renderCenterFuseState("not-found")).toContain("Page not found"); }); });

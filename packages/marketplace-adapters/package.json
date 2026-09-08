@@ -16,6 +16,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@centerfuse/integrations": "*",
     "@sellfuse/types": "*",
     "@sellfuse/validation": "*"
   }

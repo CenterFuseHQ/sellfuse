@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
-import { HttpAiGatewayClient } from "@sellfuse/ai-gateway";
+import { hasPermission } from "@centerfuse/auth";
+import { HttpAiGatewayClient } from "@centerfuse/ai";
 import {
   AllowedMarketDataRetriever,
   HttpMarketDataSource,
@@ -56,7 +57,7 @@ const service = new SellFuseApiService(
 );
 const auth = new AuthService(process.env.JWT_SECRET?.trim() ?? "");
 const maxBodyBytes = 70 * 1024 * 1024;
-const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
+const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3001";
 const responseHeaders = {
   "content-type": "application/json",
   "cache-control": "no-store",
@@ -65,6 +66,7 @@ const responseHeaders = {
   "access-control-allow-methods": "GET, POST, OPTIONS",
   vary: "Origin",
 };
+const authAttempts = new Map<string, { count: number; resetAt: number }>();
 
 createServer(async (request, response) => {
   if (request.method === "OPTIONS") {
@@ -98,6 +100,13 @@ createServer(async (request, response) => {
     request.method === "POST" &&
     (path === "/v1/auth/register" || path === "/v1/auth/login")
   ) {
+    const client = request.socket.remoteAddress ?? "unknown";
+    if (!allowAuthAttempt(client)) {
+      response
+        .writeHead(429, responseHeaders)
+        .end(JSON.stringify({ error: "RATE_LIMITED" }));
+      return;
+    }
     try {
       const result =
         path === "/v1/auth/register"
@@ -124,17 +133,29 @@ createServer(async (request, response) => {
   const authorization = Array.isArray(request.headers.authorization)
     ? request.headers.authorization[0]
     : request.headers.authorization;
-  const userId = auth.authenticate(authorization);
-  if (!userId) {
+  const context = auth.context(authorization);
+  if (!context) {
     response
       .writeHead(401, responseHeaders)
       .end(JSON.stringify({ error: "UNAUTHORIZED" }));
     return;
   }
+  const requiredPermission =
+    request.method === "POST" && /\/(publish|sold)$/.test(path)
+      ? "SELLFUSE_LISTING_PUBLISH"
+      : request.method === "POST"
+        ? "SELLFUSE_LISTING_WRITE"
+        : "SELLFUSE_LISTING_READ";
+  if (!hasPermission(context, requiredPermission)) {
+    response
+      .writeHead(403, responseHeaders)
+      .end(JSON.stringify({ error: "FORBIDDEN" }));
+    return;
+  }
   const result = await service.handle({
     method: request.method ?? "GET",
     path,
-    userId,
+    userId: context.userId,
     ...(body === undefined ? {} : { body }),
   });
   response
@@ -143,3 +164,14 @@ createServer(async (request, response) => {
 }).listen(Number(process.env.API_PORT ?? 4000), "127.0.0.1", () =>
   process.stdout.write("SellFuse API listening on 127.0.0.1\n"),
 );
+
+function allowAuthAttempt(key: string): boolean {
+  const now = Date.now();
+  const current = authAttempts.get(key);
+  if (!current || current.resetAt <= now) {
+    authAttempts.set(key, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  current.count += 1;
+  return current.count <= 10;
+}

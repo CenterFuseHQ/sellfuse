@@ -5,6 +5,10 @@ import type {
   MasterListing,
 } from "@sellfuse/types";
 import { MarketplaceListingDraftSchema } from "@sellfuse/validation";
+import {
+  ProviderRegistry,
+  type IntegrationProviderDescriptor,
+} from "@centerfuse/integrations";
 
 export interface PublishContext {
   userId: string;
@@ -317,3 +321,44 @@ export function createAdapterRegistry(): Map<Marketplace, MarketplaceAdapter> {
 export function marketplaceCapabilities(): MarketplaceCapability[] {
   return Object.values(rules);
 }
+
+/**
+ * Cross-product integration view. Only capabilities implemented through an
+ * authorized API appear in `capabilities`; assisted handoffs remain explicit
+ * manual workflows, and planned API features are not reported as available.
+ */
+export function marketplaceProviderRegistry(): ProviderRegistry<IntegrationProviderDescriptor> {
+  return new ProviderRegistry(
+    marketplaceCapabilities().map((entry) => ({
+      id: entry.marketplace,
+      displayName: displayNames[entry.marketplace],
+      availability:
+        entry.implementationStatus === "PLANNED" ? "PLANNED" : "MANUAL_ONLY",
+      capabilities: [],
+      ...(entry.implementationStatus === "PLANNED"
+        ? {
+            plannedCapabilities: [
+              "AUTHENTICATION",
+              "LISTINGS_CREATE",
+              "LISTINGS_UPDATE",
+              "LISTINGS_DELETE",
+            ] as const,
+          }
+        : {}),
+      manualWorkflows: ["LISTINGS_CREATE", "LISTINGS_UPDATE", "LISTINGS_DELETE"],
+      disclosure: entry.disclosure,
+    })),
+  );
+}
+
+const displayNames: Record<Marketplace, string> = {
+  EBAY: "eBay",
+  PINTEREST: "Pinterest",
+  FACEBOOK_MARKETPLACE: "Facebook Marketplace",
+  INSTAGRAM: "Instagram",
+  OFFERUP: "OfferUp",
+  MERCARI: "Mercari",
+  POSHMARK: "Poshmark",
+  DEPOP: "Depop",
+  CRAIGSLIST: "Craigslist",
+};

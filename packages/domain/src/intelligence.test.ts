@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GatewayUnavailableError, MockAiGateway } from "@sellfuse/ai-gateway";
+import { GatewayUnavailableError, MockAiGateway } from "@centerfuse/ai";
 import {
   AllowedMarketDataRetriever,
   MockMarketDataSource,

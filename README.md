@@ -1,52 +1,35 @@
-# SellFuse
+# CenterFuse ecosystem
 
-**List once. Sell everywhere.**
+CenterFuse is the parent for a family of focused commerce products:
 
-SellFuse is a consumer-first selling assistant that turns photos and seller-provided facts into reviewed, marketplace-specific listing drafts. AI is optional: every listing can be created and published through supported assisted workflows without inference.
+- **SellFuse** is the existing seller-side application. It identifies an item from photos, keeps AI reasoning separate from market evidence, prepares one canonical listing for selected destinations, and supports a mark-sold-once workflow.
+- **BuyFuse** is a buyer-side workspace for keeping items, source links, notes, and purchase status organized.
 
-The intelligence flow is part of listing creation—not a separate appraisal product:
+The products share intentional infrastructure—identity and entitlements, product configuration, design primitives, integration contracts, AI protocol, analytics/notifications abstractions, and database ownership conventions—while retaining independent entrypoints and deployment boundaries.
 
-```text
-Photo → identify → attributes + visible condition → missing facts
-      → allowed market-data sources → evidence-backed value
-      → master listing → marketplace drafts → review → publish → mark sold once
-```
+## Applications
 
-Model reasoning and market evidence are stored separately. The model cannot create comparables or set final price numbers. When no reliable evidence exists, SellFuse returns null price recommendations and asks the seller to enter a price or add verifiable evidence.
-
-## Architecture
-
-```text
-Web / Expo mobile
-       │
-       ▼
-SellFuse API ── business rules, auth, drafts, marketplace permissions
-       │ authenticated internal protocol
-       ▼
-Nader AI Gateway ── timeouts, schemas, concurrency, runtime adapters
-       │
-       ├── Ollama (local)
-       ├── vLLM (production option)
-       └── llama.cpp (edge/CPU option)
-```
-
-There is no OpenAI, Anthropic, Gemini, Bedrock, or other paid inference dependency. Self-hosting removes per-request third-party inference fees, not hardware, electricity, operations, or hosting costs.
+| Application | Workspace | Default URL | Purpose |
+| --- | --- | --- | --- |
+| CenterFuse | `@centerfuse/home` | `http://localhost:3000` | Parent site and product navigation |
+| SellFuse | `@sellfuse/web` | `http://localhost:3001` | Existing seller workflow |
+| BuyFuse | `@centerfuse/buyfuse` | `http://localhost:3002` | Buyer workspace |
+| SellFuse API | `@sellfuse/api` | `http://localhost:4000` | Auth, intelligence, listings, and publication workflow |
+| Nader AI Gateway | `@sellfuse/ai-gateway-server` | `http://localhost:8787` | Private authenticated access to self-hosted models |
 
 ## Quick start
 
-Requirements: Node.js 20.9+, npm 10+, and optionally Ollama or Docker.
+Requirements: Node.js 20.9+, npm 10+, and optionally Ollama or Docker for local AI.
 
 ```bash
 npm install
 copy .env.example .env
-npm run dev:gateway
-npm run dev:api
-npm run dev:web
+npm run dev
 ```
 
-Use the web screen to create a local account or sign in. The API issues a short-lived signed user token; the separate AI gateway credential remains server-side.
+`npm run dev` loads `.env` and starts the three product applications, SellFuse API, and AI gateway. Individual commands are `dev:centerfuse`, `dev:sellfuse`, `dev:buyfuse`, `dev:api`, and `dev:gateway`.
 
-In a separate terminal, install the configured local models:
+AI is self-hosted and optional to the listing workflow. There is no OpenAI, Anthropic, Gemini, Bedrock, or other paid inference dependency or silent fallback. When local inference is unavailable, SellFuse exposes the manual workflow. To enable Ollama:
 
 ```bash
 ollama pull qwen3:8b
@@ -54,22 +37,23 @@ ollama pull gemma3:4b
 ollama pull embeddinggemma
 ```
 
-The manual listing workflow works when Ollama is stopped. See [Self-hosted AI](docs/self-hosted-ai.md), [gateway protocol](docs/ai-gateway-protocol.md), [market evidence](docs/market-evidence.md), [API authentication](docs/api-authentication.md), the [marketplace capability matrix](docs/marketplace-capability-matrix.md), and [competitive positioning](docs/competitive-landscape.md).
-
-## Commands
+## Verification
 
 ```bash
-npm run typecheck
 npm run lint
+npm run typecheck
 npm test
 npm run build
-npm run audit
 npm run security:ai
+npm run audit
+docker compose config --quiet
 ```
 
-## Important MVP boundaries
+Read [developer setup](docs/development.md), the [CenterFuse architecture decision](docs/architecture/centerfuse-ecosystem.md), [deployment boundaries](docs/deployment.md), [self-hosted AI](docs/self-hosted-ai.md), [market evidence](docs/market-evidence.md), and the [marketplace capability matrix](docs/marketplace-capability-matrix.md).
 
-- Marketplace adapters are capability-aware. eBay and Pinterest have official publishing APIs, but real credentials are not configured or claimed as tested in this repository.
-- Other initial marketplaces use explicit assisted or unavailable states; no scraping, session-cookie reuse, CAPTCHA bypass, or password collection exists.
-- Market-data connectors are a separate allow-listed interface. This repository ships no unlicensed scraping connector and makes no claim of live sold-data access.
-- Accounts, listings, and workflow state use in-memory development adapters and reset when the API restarts. Durable production persistence remains required.
+## Current boundaries
+
+- Marketplace actions use official APIs only when authorized and implemented. Today, initial destinations remain explicit assisted handoffs; planned eBay/Pinterest API capabilities are not reported as available.
+- Market evidence comes only from user input or configured, allow-listed data sources. Models cannot invent comparable sales or final price evidence.
+- The checked-in database migration is additive and production-oriented, but current application repositories remain in-memory development adapters until database wiring is introduced.
+- Product URLs are configuration values. Repository names do not imply domain ownership.

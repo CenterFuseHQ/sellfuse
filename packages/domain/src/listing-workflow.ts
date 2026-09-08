@@ -3,6 +3,7 @@ import type {
   Marketplace,
   MarketplaceListingDraft,
   MasterListing,
+  ChannelPublication,
 } from "@sellfuse/types";
 import {
   createAdapterRegistry,
@@ -19,6 +20,7 @@ export interface WorkflowListing {
   status: "DRAFT" | "REVIEWED" | "PUBLISHED" | "SOLD";
   publishResults: PublishResult[];
   soldActions: DelistResult[];
+  channelPublications: ChannelPublication[];
 }
 
 export class ListingWorkflow {
@@ -35,8 +37,9 @@ export class ListingWorkflow {
       ...masterListing,
       sellerReviewed: false,
     });
+    const listingId = randomUUID();
     const listing: WorkflowListing = {
-      id: randomUUID(),
+      id: listingId,
       userId,
       masterListing: safe,
       drafts: marketplaces.map((marketplace) =>
@@ -45,6 +48,11 @@ export class ListingWorkflow {
       status: "DRAFT",
       publishResults: [],
       soldActions: [],
+      channelPublications: marketplaces.map((marketplace) => ({
+        marketplace,
+        status: "NOT_STARTED",
+        idempotencyKey: `${listingId}:${marketplace}`,
+      })),
     };
     this.listings.set(listing.id, listing);
     return listing;
@@ -81,6 +89,24 @@ export class ListingWorkflow {
           .publish(draft, { userId, listingId: id }),
       ),
     );
+    listing.channelPublications = listing.publishResults.map((result) => ({
+      marketplace: result.marketplace,
+      status:
+        result.status === "LIVE"
+          ? "SYNCED"
+          : result.status === "ASSISTED"
+            ? "ACTION_REQUIRED"
+            : "FAILED",
+      idempotencyKey:
+        listing.channelPublications.find(
+          (publication) => publication.marketplace === result.marketplace,
+        )?.idempotencyKey ?? `${listing.id}:${result.marketplace}`,
+      ...(result.externalId ? { externalId: result.externalId } : {}),
+      ...(result.errorCode
+        ? { providerError: { code: result.errorCode, message: "Marketplace publication failed." } }
+        : {}),
+      lastSynchronizedAt: new Date().toISOString(),
+    }));
     listing.status = "PUBLISHED";
     return listing;
   }
@@ -104,6 +130,29 @@ export class ListingWorkflow {
       }),
     );
     listing.status = "SOLD";
+    listing.channelPublications = listing.channelPublications.map((publication) => {
+      const action = listing.soldActions.find(
+        (result) => result.marketplace === publication.marketplace,
+      );
+      return {
+        ...publication,
+        status:
+          action?.status === "REMOVED"
+            ? "REMOVED"
+            : action?.status === "FAILED"
+              ? "FAILED"
+              : "ACTION_REQUIRED",
+        ...(action?.status === "FAILED"
+          ? {
+              providerError: {
+                code: "DELIST_FAILED",
+                message: "Marketplace removal failed.",
+              },
+            }
+          : {}),
+        lastSynchronizedAt: new Date().toISOString(),
+      };
+    });
     return listing;
   }
 

@@ -16,7 +16,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@sellfuse/ai-gateway": "*",
+    "@centerfuse/ai": "*",
     "@sellfuse/marketplace-adapters": "*",
     "@sellfuse/types": "*",
     "@sellfuse/validation": "*",
