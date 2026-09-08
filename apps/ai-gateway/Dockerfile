@@ -8,6 +8,6 @@ COPY apps ./apps
 
 RUN npm ci --ignore-scripts && npm run build:packages && npm run build -w @sellfuse/ai-gateway-server
 
-ENV NODE_ENV=production
+ENV NODE_ENV=production AI_GATEWAY_HOST=0.0.0.0
 USER node
 CMD ["node", "apps/ai-gateway/dist/server.js"]

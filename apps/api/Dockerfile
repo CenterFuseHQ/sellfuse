@@ -4,7 +4,7 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages ./packages
 COPY apps ./apps
 RUN npm ci --ignore-scripts && npm run build:packages && npm run build -w @sellfuse/api
-ENV NODE_ENV=production API_PORT=4000
+ENV NODE_ENV=production HOST=0.0.0.0 API_PORT=4000
 EXPOSE 4000
 USER node
 CMD ["node","apps/api/dist/server.js"]

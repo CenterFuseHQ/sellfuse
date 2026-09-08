@@ -15,4 +15,4 @@ createServer((_request, response) =>
       "referrer-policy": "same-origin",
     })
     .end(html),
-).listen(Number(process.env.PORT ?? PRODUCTS.SELLFUSE.defaultPort), "127.0.0.1");
+).listen(Number(process.env.PORT ?? PRODUCTS.SELLFUSE.defaultPort), process.env.HOST ?? "127.0.0.1");
