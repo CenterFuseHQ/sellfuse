@@ -1,8 +1,11 @@
 import { createServer } from "node:http";
 import { renderAppPage } from "./app-page.js";
+import { PRODUCTS, resolveProductUrls } from "@centerfuse/config";
 
+const urls = resolveProductUrls(process.env);
 const html = renderAppPage(
   process.env.SELLFUSE_API_URL ?? "http://localhost:4000",
+  urls,
 );
 createServer((_request, response) =>
   response
@@ -12,4 +15,4 @@ createServer((_request, response) =>
       "referrer-policy": "same-origin",
     })
     .end(html),
-).listen(Number(process.env.PORT ?? 3000), "127.0.0.1");
+).listen(Number(process.env.PORT ?? PRODUCTS.SELLFUSE.defaultPort), process.env.HOST ?? "127.0.0.1");

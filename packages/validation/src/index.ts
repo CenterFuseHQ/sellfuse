@@ -90,6 +90,7 @@ export const ItemAnalysisSchema = z.object({
 });
 
 export const MasterListingSchema = z.object({
+  sku: z.string().trim().min(1).max(100).optional(),
   title: z.string().min(3).max(160),
   brand: z.string().min(1).max(100).optional(),
   model: z.string().min(1).max(120).optional(),

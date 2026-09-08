@@ -1,5 +1,5 @@
-import type { AiGateway } from "@sellfuse/ai-gateway";
-import { GatewayUnavailableError } from "@sellfuse/ai-gateway";
+import type { AiGateway } from "@centerfuse/ai";
+import { GatewayUnavailableError } from "@centerfuse/ai";
 import type {
   IntelligenceResult,
   Marketplace,

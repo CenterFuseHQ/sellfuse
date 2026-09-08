@@ -1,52 +1,34 @@
 # SellFuse
 
-**List once. Sell everywhere.**
+SellFuse is the seller and reseller product in the CenterFuse ecosystem. It identifies an item from supplied photos and details, keeps AI reasoning separate from market evidence, prepares one canonical listing for selected destinations, and supports a mark-sold-once workflow.
 
-SellFuse is a consumer-first selling assistant that turns photos and seller-provided facts into reviewed, marketplace-specific listing drafts. AI is optional: every listing can be created and published through supported assisted workflows without inference.
+SellFuse is an independent source repository. The umbrella site and buyer product live in sibling repositories:
 
-The intelligence flow is part of listing creation—not a separate appraisal product:
+- [CenterFuseHQ/centerfuse](https://github.com/CenterFuseHQ/centerfuse)
+- [CenterFuseHQ/buyfuse](https://github.com/CenterFuseHQ/buyfuse)
 
-```text
-Photo → identify → attributes + visible condition → missing facts
-      → allowed market-data sources → evidence-backed value
-      → master listing → marketplace drafts → review → publish → mark sold once
-```
+## Applications
 
-Model reasoning and market evidence are stored separately. The model cannot create comparables or set final price numbers. When no reliable evidence exists, SellFuse returns null price recommendations and asks the seller to enter a price or add verifiable evidence.
-
-## Architecture
-
-```text
-Web / Expo mobile
-       │
-       ▼
-SellFuse API ── business rules, auth, drafts, marketplace permissions
-       │ authenticated internal protocol
-       ▼
-Nader AI Gateway ── timeouts, schemas, concurrency, runtime adapters
-       │
-       ├── Ollama (local)
-       ├── vLLM (production option)
-       └── llama.cpp (edge/CPU option)
-```
-
-There is no OpenAI, Anthropic, Gemini, Bedrock, or other paid inference dependency. Self-hosting removes per-request third-party inference fees, not hardware, electricity, operations, or hosting costs.
+| Application | Workspace | Default URL | Purpose |
+| --- | --- | --- | --- |
+| SellFuse web | `@sellfuse/web` | `http://localhost:3001` | Seller workflow |
+| SellFuse API | `@sellfuse/api` | `http://localhost:4000` | Auth, item analysis, listings, and publication workflow |
+| SellFuse mobile | `@sellfuse/mobile` | n/a | Mobile entrypoint |
+| Nader AI Gateway | `@sellfuse/ai-gateway-server` | `http://localhost:8787` | Private authenticated access to self-hosted models |
 
 ## Quick start
 
-Requirements: Node.js 20.9+, npm 10+, and optionally Ollama or Docker.
+Requirements: Node.js 20.9+, npm 10+, and optionally Ollama or Docker for local AI.
 
 ```bash
-npm install
+npm ci
 copy .env.example .env
-npm run dev:gateway
-npm run dev:api
-npm run dev:web
+npm run dev
 ```
 
-Use the web screen to create a local account or sign in. The API issues a short-lived signed user token; the separate AI gateway credential remains server-side.
+`npm run dev` loads `.env` and starts the SellFuse web application, API, and AI gateway. The components can also be started with `dev:sellfuse`, `dev:api`, and `dev:gateway`.
 
-In a separate terminal, install the configured local models:
+AI is self-hosted and optional to the listing workflow. There is no paid inference dependency or silent fallback. When local inference is unavailable, SellFuse exposes the manual workflow.
 
 ```bash
 ollama pull qwen3:8b
@@ -54,22 +36,22 @@ ollama pull gemma3:4b
 ollama pull embeddinggemma
 ```
 
-The manual listing workflow works when Ollama is stopped. See [Self-hosted AI](docs/self-hosted-ai.md), [gateway protocol](docs/ai-gateway-protocol.md), [market evidence](docs/market-evidence.md), [API authentication](docs/api-authentication.md), the [marketplace capability matrix](docs/marketplace-capability-matrix.md), and [competitive positioning](docs/competitive-landscape.md).
-
-## Commands
+## Verification
 
 ```bash
-npm run typecheck
 npm run lint
+npm run typecheck
 npm test
 npm run build
-npm run audit
 npm run security:ai
+npm run audit
 ```
 
-## Important MVP boundaries
+Read [developer setup](docs/development.md), [repository boundaries](docs/architecture/centerfuse-ecosystem.md), [deployment](docs/deployment.md), [API authentication](docs/api-authentication.md), [self-hosted AI](docs/self-hosted-ai.md), [market evidence](docs/market-evidence.md), and the [marketplace capability matrix](docs/marketplace-capability-matrix.md).
 
-- Marketplace adapters are capability-aware. eBay and Pinterest have official publishing APIs, but real credentials are not configured or claimed as tested in this repository.
-- Other initial marketplaces use explicit assisted or unavailable states; no scraping, session-cookie reuse, CAPTCHA bypass, or password collection exists.
-- Market-data connectors are a separate allow-listed interface. This repository ships no unlicensed scraping connector and makes no claim of live sold-data access.
-- Accounts, listings, and workflow state use in-memory development adapters and reset when the API restarts. Durable production persistence remains required.
+## Current boundaries
+
+- Marketplace actions use official APIs only when authorized and implemented. Initial destinations remain explicit assisted handoffs; planned capabilities are not reported as available.
+- Market evidence comes only from user input or configured, allow-listed data sources. Models cannot invent comparable sales or final price evidence.
+- Runtime persistence adapters remain in-memory for development. The single additive cross-product schema migration is owned by the CenterFuse platform repository and is not duplicated here.
+- Product URLs are configuration values. Repository names do not imply domain ownership.

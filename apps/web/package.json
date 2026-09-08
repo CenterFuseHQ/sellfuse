@@ -10,6 +10,8 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
+    "@centerfuse/config": "*",
+    "@centerfuse/ui": "*",
     "@sellfuse/types": "*"
   }
 }

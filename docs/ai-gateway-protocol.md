@@ -1,10 +1,10 @@
 # Nader AI Gateway protocol
 
-The protocol is deliberately product-neutral so SellFuse and NaderStudio can share inference infrastructure without sharing prompts, users, rate limits, or application data.
+The protocol is deliberately product-neutral so CenterFuse products, NaderStudio, and SmartQuote can share inference infrastructure without sharing prompts, users, rate limits, or application data. `@centerfuse/ai` is the product-facing facade; the transport implementation remains replaceable.
 
 ## Trust boundary
 
-Clients never call a model server. The SellFuse API calls `POST /v1/inference` or `POST /v1/embeddings` with an internal bearer credential. Production traffic should also use private networking, TLS, workload identity or short-lived service credentials, and a reverse proxy. The gateway must not be bound directly to a public interface.
+Clients never call a model server. An application API calls `POST /v1/inference` or `POST /v1/embeddings` with an internal bearer credential. Production traffic should also use private networking, TLS, workload identity or short-lived service credentials, and a reverse proxy. The gateway must not be bound directly to a public interface.
 
 ## Inference request
 

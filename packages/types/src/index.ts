@@ -53,6 +53,7 @@ export interface MarketplaceCapability {
 }
 
 export interface MasterListing {
+  sku?: string | undefined;
   title: string;
   brand?: string | undefined;
   model?: string | undefined;
@@ -71,6 +72,51 @@ export interface MasterListing {
   location?: string | undefined;
   missingInformation: string[];
   sellerReviewed: boolean;
+}
+
+export type PublicationSyncStatus =
+  | "NOT_STARTED"
+  | "ACTION_REQUIRED"
+  | "SYNCED"
+  | "FAILED"
+  | "REMOVED";
+
+export interface ListingMedia {
+  id: string;
+  storageReference: string;
+  mediaType: "IMAGE" | "VIDEO";
+  altText?: string | undefined;
+  sortOrder: number;
+}
+
+export interface MarketplaceListingOverride {
+  marketplace: Marketplace;
+  title?: string | undefined;
+  description?: string | undefined;
+  price?: number | undefined;
+  category?: string | undefined;
+}
+
+export interface ChannelPublication {
+  marketplace: Marketplace;
+  status: PublicationSyncStatus;
+  externalId?: string | undefined;
+  idempotencyKey: string;
+  lastSynchronizedAt?: string | undefined;
+  providerError?: { code: string; message: string } | undefined;
+}
+
+/** A single seller-owned listing mapped to zero or more external channels. */
+export interface CanonicalListing {
+  id: string;
+  userId: string;
+  masterListing: MasterListing;
+  media: ListingMedia[];
+  overrides: MarketplaceListingOverride[];
+  publications: ChannelPublication[];
+  status: ListingStatus;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MarketEvidence {

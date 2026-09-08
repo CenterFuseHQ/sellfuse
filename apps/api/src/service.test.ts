@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MockAiGateway } from "@sellfuse/ai-gateway";
+import { MockAiGateway } from "@centerfuse/ai";
 import {
   AllowedMarketDataRetriever,
   NoMarketDataSource,

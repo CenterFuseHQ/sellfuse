@@ -81,6 +81,6 @@ AI is optional. A gateway outage, timeout, invalid output, or overloaded model r
 - Queue expensive jobs and use per-tenant fairness limits.
 - Track only request IDs, model alias, latency, token/image counts, schema success, and error code by default.
 
-## SellFuse and the shared gateway
+## CenterFuse products and the shared gateway
 
-SellFuse owns seller authentication, listing prompts, evidence policy, marketplace rules, and data. NaderStudio owns its own equivalent concerns. The shared gateway only authenticates workloads, selects model roles, schedules inference, validates transport limits, and talks to self-hosted runtimes.
+SellFuse owns seller prompts, evidence policy, marketplace rules, and product data. Any future CenterFuse AI use owns its own prompts and permissions. NaderStudio and SmartQuote likewise own their application concerns. The shared gateway only authenticates workloads, selects model roles, schedules inference, validates transport limits, and talks to self-hosted runtimes.

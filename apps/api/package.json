@@ -10,7 +10,8 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
-    "@sellfuse/ai-gateway": "*",
+    "@centerfuse/auth": "*",
+    "@centerfuse/ai": "*",
     "@sellfuse/domain": "*",
     "@sellfuse/marketplace-adapters": "*",
     "@sellfuse/types": "*",
