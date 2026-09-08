@@ -1,3 +1,0 @@
-import { describe, expect, it } from "vitest";
-import { renderBuyFuseDashboard, renderBuyFuseState } from "./page.js";
-describe("BuyFuse application", () => { it("renders a real responsive buyer workspace", () => { const html = renderBuyFuseDashboard(); expect(html).toContain("Save an item"); expect(html).toContain("Your items"); expect(html).toContain("CenterFuse"); expect(html).toContain('role="status"'); }); it("includes product loading, error and empty states", () => { expect(renderBuyFuseState("loading")).toContain("Loading BuyFuse"); expect(renderBuyFuseState("error")).toContain('role="alert"'); expect(renderBuyFuseDashboard()).toContain("Nothing saved yet"); }); });

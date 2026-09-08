@@ -1,9 +1,9 @@
 {
-  "name": "centerfuse-ecosystem",
+  "name": "sellfuse",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "CenterFuse product ecosystem, including SellFuse and BuyFuse.",
+  "description": "SellFuse seller and reseller platform.",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -12,17 +12,15 @@
     "node": ">=20.9"
   },
   "scripts": {
-    "build:packages": "npm run build -w @centerfuse/config && npm run build -w @centerfuse/auth && npm run build -w @centerfuse/platform && npm run build -w @centerfuse/integrations && npm run build -w @sellfuse/types && npm run build -w @sellfuse/validation && npm run build -w @sellfuse/marketplace-adapters && npm run build -w @sellfuse/ai-gateway && npm run build -w @centerfuse/ai && npm run build -w @sellfuse/domain && npm run build -w @centerfuse/database && npm run build -w @centerfuse/buyfuse-domain && npm run build -w @centerfuse/ui",
-    "build": "npm run build:packages && npm run build -w @sellfuse/api && npm run build -w @sellfuse/ai-gateway-server && npm run build -w @sellfuse/web && npm run build -w @centerfuse/home && npm run build -w @centerfuse/buyfuse",
+    "build:packages": "npm run build -w @centerfuse/config && npm run build -w @centerfuse/auth && npm run build -w @centerfuse/integrations && npm run build -w @sellfuse/types && npm run build -w @sellfuse/validation && npm run build -w @sellfuse/marketplace-adapters && npm run build -w @sellfuse/ai-gateway && npm run build -w @centerfuse/ai && npm run build -w @sellfuse/domain && npm run build -w @centerfuse/ui",
+    "build": "npm run build:packages && npm run build -w @sellfuse/api && npm run build -w @sellfuse/ai-gateway-server && npm run build -w @sellfuse/web",
     "typecheck": "npm run build:packages && npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "test": "npm run build:packages && vitest run",
     "test:watch": "vitest",
     "dev": "node scripts/dev-all.mjs",
-    "dev:centerfuse": "npm run dev -w @centerfuse/home",
     "dev:sellfuse": "npm run dev -w @sellfuse/web",
     "dev:web": "npm run dev:sellfuse",
-    "dev:buyfuse": "npm run dev -w @centerfuse/buyfuse",
     "dev:api": "npm run dev -w @sellfuse/api",
     "dev:gateway": "npm run dev -w @sellfuse/ai-gateway-server",
     "dev:mobile": "npm run start -w @sellfuse/mobile",
