@@ -73,6 +73,11 @@ createServer(async (request, response) => {
     response.writeHead(204, responseHeaders).end();
     return;
   }
+  const path = new URL(request.url ?? "/", "http://api.internal").pathname;
+  if (request.method === "GET" && path === "/health") {
+    response.writeHead(200, responseHeaders).end(JSON.stringify({ status: "ok", service: "sellfuse-api" }));
+    return;
+  }
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
@@ -95,7 +100,6 @@ createServer(async (request, response) => {
       .end(JSON.stringify({ error: "INVALID_JSON" }));
     return;
   }
-  const path = new URL(request.url ?? "/", "http://api.internal").pathname;
   if (
     request.method === "POST" &&
     (path === "/v1/auth/register" || path === "/v1/auth/login")
