@@ -1,11 +1,10 @@
 # SellFuse
-
-SellFuse is the seller and reseller product in the CenterFuse ecosystem. It identifies an item from supplied photos and details, keeps AI reasoning separate from market evidence, prepares one canonical listing for selected destinations, and supports a mark-sold-once workflow.
+SellFuse is the canonical application source for the seller product in the CenterFuse ecosystem. It supports account, catalog, listing, and publication workflows while keeping private seller operations isolated from customer-facing products.
 
 SellFuse is an independent source repository. The umbrella site and buyer product live in sibling repositories:
 
-- [CenterFuseHQ/centerfuse](https://github.com/CenterFuseHQ/centerfuse)
-- [CenterFuseHQ/buyfuse](https://github.com/CenterFuseHQ/buyfuse)
+- [nnabdelshahid/CenterFuse](https://github.com/nnabdelshahid/CenterFuse)
+- [nnabdelshahid/BuyFuse](https://github.com/nnabdelshahid/BuyFuse)
 
 ## Applications
 
