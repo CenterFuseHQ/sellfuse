@@ -13,7 +13,7 @@ SellFuse is an independent source repository. The umbrella site and buyer produc
 | SellFuse web | `@sellfuse/web` | `http://localhost:3001` | Seller workflow |
 | SellFuse API | `@sellfuse/api` | `http://localhost:4000` | Auth, item analysis, listings, and publication workflow |
 | SellFuse mobile | `@sellfuse/mobile` | n/a | Mobile entrypoint |
-| Nader AI Gateway | `@sellfuse/ai-gateway-server` | `http://localhost:8787` | Private authenticated access to self-hosted models |
+| ModelGateway | `@sellfuse/ai-gateway-server` | `http://localhost:8787` | Private authenticated access to self-hosted models |
 
 The API and AI gateway expose unauthenticated `GET /health` liveness endpoints. They return only service availability and no account, listing, or inference data.
 

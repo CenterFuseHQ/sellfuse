@@ -1,4 +1,4 @@
-# Nader AI Gateway protocol
+# ModelGateway protocol
 
 The protocol is deliberately product-neutral so CenterFuse products, NaderStudio, and SmartQuote can share inference infrastructure without sharing prompts, users, rate limits, or application data. `@centerfuse/ai` is the product-facing facade; the transport implementation remains replaceable.
 
