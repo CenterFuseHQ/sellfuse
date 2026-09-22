@@ -4,7 +4,8 @@ import { PRODUCTS, resolveProductUrls } from "@centerfuse/config";
 
 const urls = resolveProductUrls(process.env);
 const html = renderAppPage(
-  process.env.SELLFUSE_API_URL ?? "http://localhost:4000",
+  process.env.SELLFUSE_API_URL ??
+    (process.env.NODE_ENV === "production" ? "" : "http://localhost:4000"),
   urls,
 );
 createServer((_request, response) =>
