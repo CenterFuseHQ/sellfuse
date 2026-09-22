@@ -56,3 +56,7 @@ Read [developer setup](docs/development.md), [repository boundaries](docs/archit
 - Market evidence comes only from user input or configured, allow-listed data sources. Models cannot invent comparable sales or final price evidence.
 - Runtime persistence adapters remain in-memory for development. The single additive cross-product schema migration is owned by the CenterFuse platform repository and is not duplicated here.
 - Product URLs are configuration values. Repository names do not imply domain ownership.
+
+## Live Deployment
+
+**Production:** https://sellfuse.vercel.app
