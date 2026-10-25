@@ -1,5 +1,6 @@
 import { PRODUCTS, resolveProductUrls, type ProductUrls } from "@centerfuse/config";
 import { familyStyles, renderFamilyFooter, renderFamilyHeader } from "@centerfuse/ui";
+import { sellerStyles } from "./seller-styles.js";
 
 export function renderAppPage(apiUrl: string, urls: ProductUrls = resolveProductUrls({})): string {
   const safeApiUrl = JSON.stringify(apiUrl.replace(/\/$/, "")).replaceAll("<", "\\u003c");
@@ -8,14 +9,42 @@ export function renderAppPage(apiUrl: string, urls: ProductUrls = resolveProduct
 <title>SellFuse — List once. Sell everywhere.</title>
 <style>
 ${familyStyles(PRODUCTS.SELLFUSE)}
+${sellerStyles}
 :root{font-family:Inter,ui-sans-serif,system-ui;color:#173126;background:#f4f1e9}*{box-sizing:border-box}body{margin:0}main{max-width:960px;margin:auto;padding:48px 20px 96px}header{margin-bottom:36px}.eyebrow{color:#d9512d;font-weight:800;letter-spacing:.08em;text-transform:uppercase}h1{font-size:clamp(2.6rem,8vw,5.8rem);line-height:.93;margin:.2em 0}h2{margin-top:0}.lede{font-size:1.2rem;max-width:650px;line-height:1.6}.card{background:#fff;border:1px solid #d8ddd8;border-radius:22px;padding:24px;margin:18px 0;box-shadow:0 8px 30px #1731260d}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}label{display:grid;gap:7px;font-weight:700}input,textarea,select{width:100%;padding:12px;border:1px solid #aebbb4;border-radius:10px;font:inherit}textarea{min-height:110px}button{border:0;border-radius:999px;padding:12px 19px;background:#173f2d;color:#fff;font-weight:800;cursor:pointer}button.secondary{background:#e9eee9;color:#173126}button:disabled{opacity:.5;cursor:wait}.marketplaces{display:flex;flex-wrap:wrap;gap:9px}.marketplaces label{display:flex;background:#eef1ed;border-radius:999px;padding:9px 13px;font-weight:600}.marketplaces input{width:auto}.steps{display:flex;gap:7px;overflow:auto;padding:4px 0 18px}.step{white-space:nowrap;background:#e5eae5;border-radius:999px;padding:7px 11px;font-size:.82rem}.price{font-size:2.5rem;font-weight:900}.muted{color:#5e6d65}.warning{background:#fff2dd;border-color:#efc879}.success{background:#e7f5e9;border-color:#9bc7a0}.evidence{border-left:4px solid #d9512d;padding-left:14px;margin:13px 0}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}pre{white-space:pre-wrap;background:#f5f7f4;padding:12px;border-radius:10px}.hidden{display:none}.status{min-height:24px;font-weight:700}
-</style></head><body>${renderFamilyHeader("SELLFUSE", urls)}<main id="main">
-<header><div class="eyebrow">AI selling assistant for ordinary people</div><h1>Take pictures.<br>Sell with confidence.</h1><p class="lede">SellFuse identifies the item, separates market evidence from AI reasoning, prepares each marketplace draft, and leaves the final call with you.</p></header>
-<div class="steps"><span class="step">1 Photos</span><span class="step">2 Identify</span><span class="step">3 Value</span><span class="step">4 Prepare</span><span class="step">5 Review</span><span class="step">6 Publish</span><span class="step">7 Mark sold</span></div>
+</style></head><body><div class="sf-page">${renderFamilyHeader("SELLFUSE", urls)}<main id="main">
+<div class="sf-switch"><input type="checkbox" id="sf-dark" aria-label="Enable dark mode"><label for="sf-dark">Dark mode</label></div>
+<section class="sf-lead" aria-labelledby="sf-title">
+<header><div class="eyebrow">SellFuse · Your seller command center</div><h1 id="sf-title">From item photos to a listing you control.</h1><p class="lede">Capture what you know, inspect any available evidence, prepare a draft and approve the next step. You're always in charge of publication.</p>
+<div class="actions"><a href="#auth" class="button">Open the seller workspace</a><a href="#sf-demo" class="button secondary">Try a sample</a></div></header>
+<div class="sf-visual" role="img" aria-label="Illustration of a seller flow from item capture to review and handoff.">
+<article><div class="sf-circle">1</div><strong>Capture your item</strong><small>Photos and seller-provided details</small></article><div class="sf-visual-flow" aria-hidden="true">↓ Review the evidence ↓</div>
+<article><div class="sf-circle">2</div><strong>Approve your draft</strong><small>Review-required; marketplace capabilities may vary</small></article>
+</div></section>
+<section class="sf-journeys" aria-label="SellFuse workflow phases">
+<article class="sf-feature"><strong>01 · Describe</strong><p>Enter product photos, details and the marketplaces you are considering.</p></article>
+<article class="sf-feature"><strong>02 · Review</strong><p>Check whether verified evidence exists, then edit your master listing.</p></article>
+<article class="sf-feature"><strong>03 · Prepare</strong><p>Use supported integrations or assisted handoffs—never assume automatic publication.</p></article>
+</section>
+<section id="sf-demo" class="sf-demo" aria-labelledby="sf-demo-title">
+<span class="sf-demo-badge">Simulated · Browser only · No external requests</span><h2 id="sf-demo-title">Preview a seller listing outline</h2>
+<p>Experiment with a sample item before signing in. This preview uses exactly what you enter; it does not identify photos, compute a price, consult marketplaces or publish listings.</p>
+<div class="sf-demo-grid"><div>
+<form id="sf-demo-form">
+<label for="sf-demo-title-input">Item name<input id="sf-demo-title-input" required maxlength="100" value="Running shoes"></label>
+<label for="sf-demo-condition">Condition (self-reported)<select id="sf-demo-condition"><option>Used - good</option><option>New</option><option>Used - fair</option><option>Unknown</option></select></label>
+<label for="sf-demo-notes">Known item details<textarea id="sf-demo-notes" maxlength="500">Original box included; inspect wear before listing.</textarea></label>
+<div class="actions"><button type="submit">Prepare a sample outline</button></div></form></div>
+<div><h3>Review-only sample</h3><output class="sf-demo-result" id="sf-demo-output" aria-live="polite">Item: Running shoes
+Condition: Used - good
+Notes: Original box included; inspect wear before listing.
+Next: Review every detail before preparing a real listing.</output>
+<p class="sf-warning">Demo only · No marketplace data, prices or real saved drafts. For actual workflows, use the signed-in seller workspace below.</p></div>
+</div></section>
+<h2 id="workflow-title">Real seller workflow</h2><p class="muted">Sign in to access actual workflows. Available integrations and authorization requirements still apply.</p><div class="steps" aria-label="Seller workflow steps"><span class="step">1 Photos</span><span class="step">2 Identify</span><span class="step">3 Value</span><span class="step">4 Prepare</span><span class="step">5 Review</span><span class="step">6 Publish</span><span class="step">7 Mark sold</span></div>
 <section id="auth" class="card"><h2>Start securely</h2><p class="muted">Create a SellFuse account or sign in. Your private AI gateway token never reaches this page.</p><div class="grid"><label>Email<input id="email" type="email" autocomplete="email"></label><label>Password<input id="password" type="password" minlength="12" autocomplete="current-password"></label></div><div class="actions"><button id="login">Sign in</button><button id="register" class="secondary">Create account</button></div></section>
 <section id="capture" class="card hidden"><h2>What are you selling?</h2><label>Photos<input id="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple></label><label>What you already know (optional)<textarea id="notes" placeholder="It powers on; I bought it in 2022; the charger is included..."></textarea></label><h3>Where might you sell it?</h3><div id="marketplaces" class="marketplaces"></div><div class="actions"><button id="prepare">Identify and prepare</button></div></section>
 <div id="status" class="status" role="status" aria-live="polite"></div><section id="result" class="hidden"></section>
-</main>${renderFamilyFooter(urls)}<script>
+</main>${renderFamilyFooter(urls)}</div><script>
 const API=${safeApiUrl}; const marketplaceNames={EBAY:'eBay',PINTEREST:'Pinterest',FACEBOOK_MARKETPLACE:'Facebook Marketplace',INSTAGRAM:'Instagram',OFFERUP:'OfferUp',MERCARI:'Mercari',POSHMARK:'Poshmark',DEPOP:'Depop',CRAIGSLIST:'Craigslist'};
 let token=sessionStorage.getItem('sellfuseToken')||''; let current=null; let listingId='';
 const byId=(id)=>document.getElementById(id); const status=(message)=>byId('status').textContent=message;
@@ -31,6 +60,6 @@ function renderResult(data){const analysis=data.analysis;const value=data.valuat
 async function publish(){try{const markets=selectedMarkets();const price=Number(byId('reviewPrice').value);if(!markets.length)throw new Error('Choose at least one marketplace');if(!Number.isFinite(price)||price<=0)throw new Error('Enter the price you want to ask');status('Saving your reviewed listing…');if(!current.masterListing){current=await api('/v1/intelligence/manual',{method:'POST',body:JSON.stringify({title:byId('reviewTitle').value,category:byId('reviewCategory').value,description:byId('reviewDescription').value,price,marketplaces:markets})})}const master={...current.masterListing,title:byId('reviewTitle').value,category:byId('reviewCategory').value,description:byId('reviewDescription').value,suggestedPrice:price};const created=await api('/v1/listings',{method:'POST',body:JSON.stringify({masterListing:master,marketplaces:markets})});listingId=created.id;await api('/v1/listings/'+listingId+'/review',{method:'POST',body:JSON.stringify(master)});const published=await api('/v1/listings/'+listingId+'/publish',{method:'POST',body:'{}'});renderPublish(published);status('Drafts prepared. Complete any assisted handoffs, then mark sold once here.')}catch(error){status('Could not publish: '+error.message)}}
 function renderPublish(listing){byId('result').insertAdjacentHTML('beforeend','<section class="card success"><h2>Marketplace handoffs</h2>'+listing.publishResults.map((item)=>'<p><strong>'+marketplaceNames[item.marketplace]+'</strong> · '+item.status+(item.handoffUrl?' · <a target="_blank" rel="noopener" href="'+escapeHtml(item.handoffUrl)+'">Open marketplace</a>':'')+'</p>').join('')+'<label>Sold on<select id="soldOn">'+listing.drafts.map((draft)=>'<option value="'+draft.marketplace+'">'+marketplaceNames[draft.marketplace]+'</option>').join('')+'</select></label><div class="actions"><button id="sold">Mark sold once</button></div></section>');byId('sold').onclick=markSold}
 async function markSold(){try{const sold=await api('/v1/listings/'+listingId+'/sold',{method:'POST',body:JSON.stringify({soldOn:byId('soldOn').value})});status('Marked sold in SellFuse. '+sold.soldActions.length+' marketplace follow-up actions are ready.');byId('sold').disabled=true}catch(error){status('Could not mark sold: '+error.message)}}
-byId('login').onclick=()=>authenticate('login');byId('register').onclick=()=>authenticate('register');byId('prepare').onclick=prepare;if(!API)status('The SellFuse UI is live; connect its protected API deployment to enable seller workflows.');else if(token)showCapture();
+byId('sf-demo-form').onsubmit=event=>{event.preventDefault();const title=byId('sf-demo-title-input').value.trim().slice(0,100);if(!title){byId('sf-demo-output').textContent='Please enter an item name.';return}const condition=byId('sf-demo-condition').value;const notes=byId('sf-demo-notes').value.trim().slice(0,500);byId('sf-demo-output').textContent='Item: '+title+'\nCondition: '+condition+'\nNotes: '+(notes||'None provided')+'\nNext: Review every detail before a real listing.\n\nSimulated; nothing saved or published.'};byId('login').onclick=()=>authenticate('login');byId('register').onclick=()=>authenticate('register');byId('prepare').onclick=prepare;if(!API)status('The SellFuse UI is live; connect its protected API deployment to enable seller workflows.');else if(token)showCapture();
 </script></body></html>`;
 }
