@@ -22,6 +22,10 @@ export const RATE_LIMIT_BUCKETS = Object.freeze({
   maximumKeys: 10_000,
   authentication: { attempts: 10, windowMs: 60_000 },
   analysis: { attempts: 5, windowMs: 60_000 },
+  // API preparations can fan out to six calls (initial plus one repair across
+  // identification, valuation, and listing). Several sellers share one API
+  // source address at the gateway, so that budget needs separate headroom.
+  gatewayInference: { attempts: 100, windowMs: 60_000 },
 });
 
 export async function readJsonBody(
@@ -33,21 +37,22 @@ export async function readJsonBody(
 
   const chunks: Buffer[] = [];
   let size = 0;
-  let tooLarge = false;
 
-  for await (const chunk of source) {
-    if (tooLarge) continue;
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+  const iterator = source[Symbol.asyncIterator]();
+  for (;;) {
+    const next = await iterator.next();
+    if (next.done) break;
+    const buffer = Buffer.isBuffer(next.value) ? next.value : Buffer.from(next.value);
     size += buffer.byteLength;
     if (size > maximumBytes) {
-      tooLarge = true;
+      // Leave an oversized live request unread so the HTTP server can send 413
+      // and close the connection instead of waiting for an attacker to finish it.
       chunks.length = 0;
-      continue;
+      throw new RequestBodyTooLargeError();
     }
     chunks.push(buffer);
   }
 
-  if (tooLarge) throw new RequestBodyTooLargeError();
   if (!size) return undefined;
 
   try {

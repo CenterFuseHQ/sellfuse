@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { request as httpRequest } from "node:http";
 import { GatewayService } from "./service.js";
 import { createGatewayHttpServer } from "./http-server.js";
 import type { SelfHostedModelProvider } from "@sellfuse/ai-gateway";
@@ -67,6 +68,40 @@ describe("AI Gateway HTTP security", () => {
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
   });
 
+  it("returns 413 for a chunked oversized body before the sender finishes", async () => {
+    const baseUrl = await startGateway({ standard: 8 });
+    const target = new URL(baseUrl);
+    const responsePromise = new Promise<{ status: number; body: string }>((resolve, reject) => {
+      const request = httpRequest({
+        hostname: target.hostname,
+        port: target.port,
+        path: "/v1/embeddings",
+        method: "POST",
+        headers: {
+          authorization: "Bearer " + TOKEN,
+          "transfer-encoding": "chunked",
+        },
+      });
+      let responseStarted = false;
+      request.once("error", (error) => {
+        if (!responseStarted) reject(error);
+      });
+      request.once("response", (response) => {
+        responseStarted = true;
+        let body = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk: string) => (body += chunk));
+        response.on("end", () => resolve({ status: response.statusCode ?? 0, body }));
+      });
+      request.setTimeout(2_000, () => reject(new Error("server waited for the request body to finish")));
+      request.write("123456789");
+    });
+
+    const response = await responsePromise;
+    expect(response.status).toBe(413);
+    expect(JSON.parse(response.body)).toEqual({ error: "PAYLOAD_TOO_LARGE" });
+  });
+
   it("reports malformed JSON without reflecting request contents", async () => {
     const baseUrl = await startGateway();
     const response = await fetch(baseUrl + "/v1/inference", {
@@ -83,7 +118,7 @@ describe("AI Gateway HTTP security", () => {
 
   it("rate limits direct authenticated inference before parsing request bodies", async () => {
     const baseUrl = await startGateway();
-    for (let attempt = 0; attempt < 5; attempt += 1) {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
       const response = await fetch(baseUrl + "/v1/inference", {
         method: "POST",
         headers: {

@@ -29,8 +29,8 @@ export function createGatewayHttpServer(
     ...bodyLimits,
   };
   const inferenceAttempts = new FixedWindowRateLimiter(
-    RATE_LIMIT_BUCKETS.analysis.attempts,
-    RATE_LIMIT_BUCKETS.analysis.windowMs,
+    RATE_LIMIT_BUCKETS.gatewayInference.attempts,
+    RATE_LIMIT_BUCKETS.gatewayInference.windowMs,
   );
   const server = createServer(async (request, response) => {
     try {
@@ -40,8 +40,12 @@ export function createGatewayHttpServer(
       ).pathname;
       const authorization = getAuthorizationHeader(request);
       if (!service.isAuthenticated(authorization)) {
-        request.resume();
-        sendJson(response, 401, { error: "UNAUTHORIZED" });
+        sendJson(
+          response,
+          401,
+          { error: "UNAUTHORIZED" },
+          hasRequestBody(request) ? () => request.destroy() : undefined,
+        );
         return;
       }
 
@@ -50,19 +54,23 @@ export function createGatewayHttpServer(
         isInference &&
         !inferenceAttempts.allow(request.socket.remoteAddress ?? "unknown")
       ) {
-        request.resume();
-        sendJson(response, 429, { error: "RATE_LIMITED" });
+        sendJson(response, 429, { error: "RATE_LIMITED" }, () => request.destroy());
         return;
       }
 
+      const bodyLimit = isInference ? limits.analysis : limits.standard;
+      if (request.method === "POST" && declaredBodyExceeds(request, bodyLimit)) {
+        sendJson(response, 413, { error: "PAYLOAD_TOO_LARGE" }, () => request.destroy());
+        return;
+      }
       let body: unknown;
       if (request.method === "POST") {
-        body = await readJsonBody(
-          request,
-          isInference ? limits.analysis : limits.standard,
-        );
+        body = await readJsonBody(request, bodyLimit);
       } else {
-        request.resume();
+        if (hasRequestBody(request)) {
+          sendJson(response, 400, { error: "UNEXPECTED_REQUEST_BODY" }, () => request.destroy());
+          return;
+        }
       }
 
       const result = await service.handle({
@@ -75,7 +83,7 @@ export function createGatewayHttpServer(
     } catch (error) {
       if (response.destroyed || response.writableEnded) return;
       if (error instanceof RequestBodyTooLargeError) {
-        sendJson(response, 413, { error: "PAYLOAD_TOO_LARGE" });
+        sendJson(response, 413, { error: "PAYLOAD_TOO_LARGE" }, () => request.destroy());
       } else if (error instanceof InvalidJsonBodyError) {
         sendJson(response, 400, { error: "INVALID_JSON" });
       } else {
@@ -93,10 +101,21 @@ function getAuthorizationHeader(request: IncomingMessage): string | undefined {
   return Array.isArray(header) ? header[0] : header;
 }
 
+function hasRequestBody(request: IncomingMessage): boolean {
+  return (request.headers["content-length"] ?? "0") !== "0" ||
+    request.headers["transfer-encoding"] !== undefined;
+}
+
+function declaredBodyExceeds(request: IncomingMessage, maximumBytes: number): boolean {
+  const contentLength = request.headers["content-length"];
+  return contentLength !== undefined && Number(contentLength) > maximumBytes;
+}
+
 function sendJson(
   response: ServerResponse,
   status: number,
   body: unknown,
+  afterSend?: () => void,
 ): void {
   if (response.destroyed || response.writableEnded) return;
   response
@@ -105,5 +124,5 @@ function sendJson(
       "cache-control": "no-store",
       "x-content-type-options": "nosniff",
     })
-    .end(JSON.stringify(body));
+    .end(JSON.stringify(body), afterSend);
 }

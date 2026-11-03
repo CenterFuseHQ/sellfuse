@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { request as httpRequest } from "node:http";
 import type { Server } from "node:http";
 import { AuthService } from "./auth.js";
 import { createApiHttpServer } from "./http-server.js";
@@ -67,6 +68,34 @@ describe("SellFuse API HTTP security", () => {
     });
     expect(response.status).toBe(413);
     expect(await response.json()).toEqual({ error: "REQUEST_TOO_LARGE" });
+  });
+
+  it("returns 413 and closes a chunked oversized request without waiting for end", async () => {
+    const { baseUrl } = await startApi({ authenticationBodyLimit: 8 });
+    const target = new URL(baseUrl);
+    const request = httpRequest({
+      hostname: target.hostname,
+      port: target.port,
+      path: "/v1/auth/login",
+      method: "POST",
+      headers: { "transfer-encoding": "chunked" },
+    });
+
+    const responsePromise = new Promise<{ status: number; body: string }>((resolve, reject) => {
+      request.once("error", reject);
+      request.once("response", (response) => {
+        let body = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk: string) => (body += chunk));
+        response.on("end", () => resolve({ status: response.statusCode ?? 0, body }));
+      });
+      request.setTimeout(2000, () => reject(new Error("server waited for the request body to finish")));
+      request.write("123456789");
+    });
+
+    const response = await responsePromise;
+    expect(response.status).toBe(413);
+    expect(JSON.parse(response.body)).toEqual({ error: "REQUEST_TOO_LARGE" });
   });
 
   it("rate limits authenticated inference requests per user", async () => {

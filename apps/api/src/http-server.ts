@@ -48,13 +48,16 @@ export function createApiHttpServer(options: ApiHttpServerOptions): Server {
       const path = new URL(request.url ?? "/", "http://api.internal").pathname;
 
       if (request.method === "OPTIONS") {
-        request.resume();
-        response.writeHead(204, responseHeaders).end();
+        response.writeHead(204, responseHeaders).end(() => request.destroy());
         return;
       }
       if (request.method === "GET" && path === "/health") {
-        request.resume();
-        sendJson(response, 200, { status: "ok", service: "sellfuse-api" });
+        sendJson(
+          response,
+          200,
+          { status: "ok", service: "sellfuse-api" },
+          hasRequestBody(request) ? () => request.destroy() : undefined,
+        );
         return;
       }
 
@@ -64,11 +67,14 @@ export function createApiHttpServer(options: ApiHttpServerOptions): Server {
       if (isRegister || isLogin) {
         const client = request.socket.remoteAddress ?? "unknown";
         if (!authAttempts.allow(client)) {
-          request.resume();
-          sendJson(response, 429, { error: "RATE_LIMITED" });
+          sendJson(response, 429, { error: "RATE_LIMITED" }, () => request.destroy());
           return;
         }
 
+        if (declaredBodyExceeds(request, bodyLimits.authentication)) {
+          sendJson(response, 413, { error: "REQUEST_TOO_LARGE" }, () => request.destroy());
+          return;
+        }
         const body = await readJsonBody(request, bodyLimits.authentication);
         try {
           const result = isRegister
@@ -91,8 +97,12 @@ export function createApiHttpServer(options: ApiHttpServerOptions): Server {
       const authorization = getAuthorizationHeader(request);
       const context = options.auth.context(authorization);
       if (!context) {
-        request.resume();
-        sendJson(response, 401, { error: "UNAUTHORIZED" });
+        sendJson(
+          response,
+          401,
+          { error: "UNAUTHORIZED" },
+          hasRequestBody(request) ? () => request.destroy() : undefined,
+        );
         return;
       }
 
@@ -103,25 +113,35 @@ export function createApiHttpServer(options: ApiHttpServerOptions): Server {
             ? "SELLFUSE_LISTING_WRITE"
             : "SELLFUSE_LISTING_READ";
       if (!hasPermission(context, requiredPermission)) {
-        request.resume();
-        sendJson(response, 403, { error: "FORBIDDEN" });
+        sendJson(
+          response,
+          403,
+          { error: "FORBIDDEN" },
+          hasRequestBody(request) ? () => request.destroy() : undefined,
+        );
+        return;
+      }
+
+      if (request.method !== "POST" && hasRequestBody(request)) {
+        sendJson(response, 400, { error: "UNEXPECTED_REQUEST_BODY" }, () => request.destroy());
         return;
       }
 
       const isAnalysis =
         request.method === "POST" && path === "/v1/intelligence/prepare";
       if (isAnalysis && !analysisAttempts.allow(context.userId)) {
-        request.resume();
-        sendJson(response, 429, { error: "RATE_LIMITED" });
+        sendJson(response, 429, { error: "RATE_LIMITED" }, () => request.destroy());
         return;
       }
 
+      const bodyLimit = isAnalysis ? bodyLimits.analysis : bodyLimits.standard;
+      if (request.method === "POST" && declaredBodyExceeds(request, bodyLimit)) {
+        sendJson(response, 413, { error: "REQUEST_TOO_LARGE" }, () => request.destroy());
+        return;
+      }
       const body =
         request.method === "POST"
-          ? await readJsonBody(
-              request,
-              isAnalysis ? bodyLimits.analysis : bodyLimits.standard,
-            )
+          ? await readJsonBody(request, bodyLimit)
           : undefined;
       const result = await options.service.handle({
         method: request.method ?? "GET",
@@ -133,7 +153,7 @@ export function createApiHttpServer(options: ApiHttpServerOptions): Server {
     } catch (error) {
       if (response.destroyed || response.writableEnded) return;
       if (error instanceof RequestBodyTooLargeError) {
-        sendJson(response, 413, { error: "REQUEST_TOO_LARGE" });
+        sendJson(response, 413, { error: "REQUEST_TOO_LARGE" }, () => request.destroy());
       } else if (error instanceof InvalidJsonBodyError) {
         sendJson(response, 400, { error: "INVALID_JSON" });
       } else {
@@ -150,6 +170,7 @@ export function createApiHttpServer(options: ApiHttpServerOptions): Server {
     response: ServerResponse,
     status: number,
     body: unknown,
+    afterSend?: () => void,
   ): void {
     if (response.destroyed || response.writableEnded) return;
     response
@@ -157,8 +178,18 @@ export function createApiHttpServer(options: ApiHttpServerOptions): Server {
         ...responseHeaders,
         "content-type": "application/json; charset=utf-8",
       })
-      .end(JSON.stringify(body));
+      .end(JSON.stringify(body), afterSend);
   }
+}
+
+function hasRequestBody(request: IncomingMessage): boolean {
+  return (request.headers["content-length"] ?? "0") !== "0" ||
+    request.headers["transfer-encoding"] !== undefined;
+}
+
+function declaredBodyExceeds(request: IncomingMessage, maximumBytes: number): boolean {
+  const contentLength = request.headers["content-length"];
+  return contentLength !== undefined && Number(contentLength) > maximumBytes;
 }
 
 function getAuthorizationHeader(request: IncomingMessage): string | undefined {

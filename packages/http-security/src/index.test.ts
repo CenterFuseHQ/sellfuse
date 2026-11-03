@@ -24,6 +24,19 @@ describe("bounded HTTP security helpers", () => {
     ).rejects.toBeInstanceOf(InvalidJsonBodyError);
   });
 
+  it("stops reading as soon as a streaming body exceeds its limit", async () => {
+    let chunksRead = 0;
+    async function* oversized(): AsyncGenerator<string> {
+      chunksRead += 1;
+      yield "12345";
+      chunksRead += 1;
+      yield "should-not-be-read";
+    }
+
+    await expect(readJsonBody(oversized(), 4)).rejects.toBeInstanceOf(RequestBodyTooLargeError);
+    expect(chunksRead).toBe(1);
+  });
+
   it("expires fixed-window attempts without increasing denied counters", () => {
     let now = 100;
     const limiter = new FixedWindowRateLimiter(2, 1000, 2, () => now);
