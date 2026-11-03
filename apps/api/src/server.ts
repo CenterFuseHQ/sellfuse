@@ -1,5 +1,3 @@
-import { createServer } from "node:http";
-import { hasPermission } from "@centerfuse/auth";
 import { HttpAiGatewayClient } from "@centerfuse/ai";
 import {
   AllowedMarketDataRetriever,
@@ -8,6 +6,7 @@ import {
   SellFuseIntelligenceService,
 } from "@sellfuse/domain";
 import { AuthService } from "./auth.js";
+import { createApiHttpServer } from "./http-server.js";
 import { SellFuseApiService } from "./service.js";
 
 const gatewayUrl = process.env.AI_GATEWAY_BASE_URL?.trim();
@@ -56,126 +55,12 @@ const service = new SellFuseApiService(
   new SellFuseIntelligenceService(gateway, marketData),
 );
 const auth = new AuthService(process.env.JWT_SECRET?.trim() ?? "");
-const maxBodyBytes = 70 * 1024 * 1024;
-const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3001";
-const responseHeaders = {
-  "content-type": "application/json",
-  "cache-control": "no-store",
-  "access-control-allow-origin": webOrigin,
-  "access-control-allow-headers": "authorization, content-type",
-  "access-control-allow-methods": "GET, POST, OPTIONS",
-  vary: "Origin",
-};
-const authAttempts = new Map<string, { count: number; resetAt: number }>();
+const server = createApiHttpServer({
+  auth,
+  service,
+  webOrigin: process.env.WEB_ORIGIN?.trim() || "http://localhost:3001",
+});
 
-createServer(async (request, response) => {
-  if (request.method === "OPTIONS") {
-    response.writeHead(204, responseHeaders).end();
-    return;
-  }
-  const path = new URL(request.url ?? "/", "http://api.internal").pathname;
-  if (request.method === "GET" && path === "/health") {
-    response.writeHead(200, responseHeaders).end(JSON.stringify({ status: "ok", service: "sellfuse-api" }));
-    return;
-  }
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of request) {
-    const buffer = Buffer.from(chunk);
-    size += buffer.length;
-    if (size > maxBodyBytes) {
-      response.writeHead(413, responseHeaders).end();
-      return;
-    }
-    chunks.push(buffer);
-  }
-  let body: unknown;
-  try {
-    body = chunks.length
-      ? JSON.parse(Buffer.concat(chunks).toString("utf8"))
-      : undefined;
-  } catch {
-    response
-      .writeHead(400, responseHeaders)
-      .end(JSON.stringify({ error: "INVALID_JSON" }));
-    return;
-  }
-  if (
-    request.method === "POST" &&
-    (path === "/v1/auth/register" || path === "/v1/auth/login")
-  ) {
-    const client = request.socket.remoteAddress ?? "unknown";
-    if (!allowAuthAttempt(client)) {
-      response
-        .writeHead(429, responseHeaders)
-        .end(JSON.stringify({ error: "RATE_LIMITED" }));
-      return;
-    }
-    try {
-      const result =
-        path === "/v1/auth/register"
-          ? await auth.register(body)
-          : await auth.login(body);
-      response
-        .writeHead(path.endsWith("register") ? 201 : 200, responseHeaders)
-        .end(JSON.stringify(result));
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "INVALID_REQUEST";
-      const status =
-        message === "ACCOUNT_ALREADY_EXISTS"
-          ? 409
-          : message === "INVALID_CREDENTIALS"
-            ? 401
-            : 400;
-      response
-        .writeHead(status, responseHeaders)
-        .end(JSON.stringify({ error: message }));
-    }
-    return;
-  }
-  const authorization = Array.isArray(request.headers.authorization)
-    ? request.headers.authorization[0]
-    : request.headers.authorization;
-  const context = auth.context(authorization);
-  if (!context) {
-    response
-      .writeHead(401, responseHeaders)
-      .end(JSON.stringify({ error: "UNAUTHORIZED" }));
-    return;
-  }
-  const requiredPermission =
-    request.method === "POST" && /\/(publish|sold)$/.test(path)
-      ? "SELLFUSE_LISTING_PUBLISH"
-      : request.method === "POST"
-        ? "SELLFUSE_LISTING_WRITE"
-        : "SELLFUSE_LISTING_READ";
-  if (!hasPermission(context, requiredPermission)) {
-    response
-      .writeHead(403, responseHeaders)
-      .end(JSON.stringify({ error: "FORBIDDEN" }));
-    return;
-  }
-  const result = await service.handle({
-    method: request.method ?? "GET",
-    path,
-    userId: context.userId,
-    ...(body === undefined ? {} : { body }),
-  });
-  response
-    .writeHead(result.status, responseHeaders)
-    .end(JSON.stringify(result.body));
-}).listen(Number(process.env.API_PORT ?? 4000), process.env.HOST ?? "127.0.0.1", () =>
+server.listen(Number(process.env.API_PORT ?? 4000), process.env.HOST ?? "127.0.0.1", () =>
   process.stdout.write("SellFuse API listening on 127.0.0.1\n"),
 );
-
-function allowAuthAttempt(key: string): boolean {
-  const now = Date.now();
-  const current = authAttempts.get(key);
-  if (!current || current.resetAt <= now) {
-    authAttempts.set(key, { count: 1, resetAt: now + 60_000 });
-    return true;
-  }
-  current.count += 1;
-  return current.count <= 10;
-}

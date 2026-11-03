@@ -123,7 +123,18 @@ export class SellFuseApiService {
               message === "LISTING_NOT_PUBLISHED"
             ? 409
             : 400;
-      return { status, body: { error: message } };
+      const publicCode = new Set([
+        "LISTING_NOT_FOUND",
+        "SELLER_REVIEW_REQUIRED",
+        "LISTING_NOT_PUBLISHED",
+        "NO_MARKETPLACE_SELECTED",
+        "INVALID_BODY",
+        "INVALID_MARKETPLACES",
+        "SOLD_MARKETPLACE_NOT_LISTED",
+      ]).has(message)
+        ? message
+        : "INVALID_REQUEST";
+      return { status, body: { error: publicCode } };
     }
   }
 }

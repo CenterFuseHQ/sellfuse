@@ -10,6 +10,7 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
+    "@sellfuse/http-security": "*",
     "@centerfuse/auth": "*",
     "@centerfuse/ai": "*",
     "@sellfuse/domain": "*",
