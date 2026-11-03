@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Script } from "node:vm";
 import { intelligenceViewModel, SELLFUSE_STEPS } from "./workflow.js";
 import { renderAppPage } from "./app-page.js";
 
@@ -15,11 +16,18 @@ describe("consumer workflow", () => {
   });
   it("preserves protected photo-to-publish and mark-sold controls", () => {
     const html = renderAppPage("http://localhost:4000");
+    expect(html).toContain("SellFuse — reviewed marketplace listing drafts");
+    expect(html).toContain('meta name="description"');
     expect(html).toContain('id="photos"');
     expect(html).toContain('id="auth"');
     expect(html).toContain('id="capture"');
     expect(html).toContain("/v1/intelligence/prepare");
     expect(html).toContain("Approve and prepare publishing");
+    expect(html).toContain("Destination draft packets");
+    expect(html).toContain("data-copy-draft");
+    expect(html).toContain("Copying does not publish or contact the marketplace.");
+    expect(html).toContain("Source link omitted for safety");
+    expect(html).toContain("safeEvidenceUrl(item.handoffUrl)");
     expect(html).toContain("Mark sold once");
     expect(html).not.toContain("AI_GATEWAY_TOKEN");
   });
@@ -32,5 +40,13 @@ describe("consumer workflow", () => {
     expect(html).toContain("No external requests");
     expect(html).toContain("prefers-reduced-motion");
     expect(html).toContain("The SellFuse UI is live; connect its protected API");
+  });
+
+  it("renders syntactically valid client-side assisted draft controls", () => {
+    const html = renderAppPage("http://localhost:4000");
+    const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+
+    expect(script).toBeDefined();
+    expect(() => new Script(script ?? "")).not.toThrow();
   });
 });
