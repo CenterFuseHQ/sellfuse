@@ -10,6 +10,8 @@ import { z } from "zod";
 import {
   AnalyzeItemRequestSchema,
   ItemAnalysisSchema,
+  MAX_IMAGE_BYTES,
+  MAX_TOTAL_IMAGE_BYTES,
   MasterListingSchema,
   PricingSuggestionSchema,
   type ImageInput,
@@ -57,7 +59,12 @@ export class SellFuseIntelligenceService {
       photos: input.photos,
       ...(input.sellerNotes ? { sellerNotes: input.sellerNotes } : {}),
     });
-    assertValidImages(request.photos, 8 * 1024 * 1024, 8);
+    assertValidImages(
+      request.photos,
+      MAX_IMAGE_BYTES,
+      8,
+      MAX_TOTAL_IMAGE_BYTES,
+    );
     try {
       const rawAnalysis = await this.gateway.infer({
         modelRole: "VISION_MODEL",

@@ -10,6 +10,7 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
+    "@sellfuse/http-security": "*",
     "@sellfuse/ai-gateway": "*",
     "@sellfuse/validation": "*",
     "zod": "^4.5.4"

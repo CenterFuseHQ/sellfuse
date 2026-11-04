@@ -12,7 +12,7 @@
     "node": ">=20.9"
   },
   "scripts": {
-    "build:packages": "npm run build -w @centerfuse/config && npm run build -w @centerfuse/auth && npm run build -w @centerfuse/integrations && npm run build -w @sellfuse/types && npm run build -w @sellfuse/validation && npm run build -w @sellfuse/marketplace-adapters && npm run build -w @sellfuse/ai-gateway && npm run build -w @centerfuse/ai && npm run build -w @sellfuse/domain && npm run build -w @centerfuse/ui",
+    "build:packages": "npm run build -w @sellfuse/http-security && npm run build -w @centerfuse/config && npm run build -w @centerfuse/auth && npm run build -w @centerfuse/integrations && npm run build -w @sellfuse/types && npm run build -w @sellfuse/validation && npm run build -w @sellfuse/marketplace-adapters && npm run build -w @sellfuse/ai-gateway && npm run build -w @centerfuse/ai && npm run build -w @sellfuse/domain && npm run build -w @centerfuse/ui",
     "build": "npm run build:packages && npm run build -w @sellfuse/api && npm run build -w @sellfuse/ai-gateway-server && npm run build -w @sellfuse/web",
     "typecheck": "npm run build:packages && npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
