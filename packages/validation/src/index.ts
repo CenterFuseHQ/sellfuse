@@ -19,7 +19,21 @@ export const MarketEvidenceSchema = z
     type: EvidenceTypeSchema,
     title: z.string().min(1).max(300),
     sourceName: z.string().min(1).max(120),
-    sourceUrl: z.url().optional(),
+    sourceUrl: z
+      .url()
+      .refine((value) => {
+        const url = new URL(value);
+        const sensitiveQueryKey =
+          /(?:access[_-]?token|token|secret|signature|(^|[^a-z])sig(?:nature)?(?:[^a-z]|$)|api[_-]?key|access[_-]?key|auth(?:orization)?|credential|password|passwd|session|(^|[^a-z])code(?:[^a-z]|$))/i;
+        return (
+          (url.protocol === "http:" || url.protocol === "https:") &&
+          !url.username &&
+          !url.password &&
+          !url.hash &&
+          ![...url.searchParams.keys()].some((key) => sensitiveQueryKey.test(key))
+        );
+      }, "Source URLs must use HTTP(S) and cannot include credentials, sensitive query parameters, or fragments.")
+      .optional(),
     observedAt: z.iso.datetime(),
     price: z.number().nonnegative().optional(),
     currency: z.string().length(3),
