@@ -3,6 +3,8 @@ import { MARKETPLACES } from "@sellfuse/types";
 
 export const MarketplaceSchema = z.enum(MARKETPLACES);
 export const ConfidenceSchema = z.number().min(0).max(1);
+export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+export const MAX_TOTAL_IMAGE_BYTES = 24 * 1024 * 1024;
 
 export const EvidenceTypeSchema = z.enum([
   "SOLD_COMPARABLE",
@@ -200,8 +202,10 @@ export function assertValidImages(
   images: ImageInput[],
   maxBytes: number,
   maxImages = 8,
+  maxTotalBytes = MAX_TOTAL_IMAGE_BYTES,
 ): void {
   if (images.length > maxImages) throw new Error("IMAGE_COUNT_LIMIT");
+  let totalBytes = 0;
   for (const image of images) {
     let bytes: Buffer;
     try {
@@ -211,6 +215,9 @@ export function assertValidImages(
     }
     if (bytes.byteLength === 0 || bytes.byteLength > maxBytes)
       throw new Error("IMAGE_SIZE_LIMIT");
+    totalBytes += bytes.byteLength;
+    if (totalBytes > maxTotalBytes)
+      throw new Error("IMAGE_TOTAL_SIZE_LIMIT");
     const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8;
     const isPng =
       bytes[0] === 0x89 &&

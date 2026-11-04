@@ -21,4 +21,21 @@ describe("SellFuse API", () => {
     expect(response.status).toBe(200);
     expect(response.body).toHaveLength(9);
   });
+
+  it("does not reflect invalid caller-supplied fields in API errors", async () => {
+    const privateMarker = "private-seller-input-marker";
+    const service = new SellFuseApiService(
+      {} as unknown as SellFuseIntelligenceService,
+    );
+    const response = await service.handle({
+      method: "POST",
+      path: "/v1/intelligence/prepare",
+      userId: "seller",
+      body: { photos: privateMarker, sellerNotes: privateMarker },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: "INVALID_REQUEST" });
+    expect(JSON.stringify(response.body)).not.toContain(privateMarker);
+  });
 });

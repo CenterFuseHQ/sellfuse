@@ -7,7 +7,10 @@ import {
   ModelUnavailableError,
   type SelfHostedModelProvider,
 } from "@sellfuse/ai-gateway";
-import { assertValidImages } from "@sellfuse/validation";
+import {
+  assertValidImages,
+  MAX_TOTAL_IMAGE_BYTES,
+} from "@sellfuse/validation";
 
 export interface GatewayHttpRequest {
   method: string;
@@ -47,7 +50,7 @@ export class GatewayService {
   }
 
   async handle(request: GatewayHttpRequest): Promise<GatewayHttpResponse> {
-    if (!this.authenticated(request.authorization))
+    if (!this.isAuthenticated(request.authorization))
       return { status: 401, body: { error: "UNAUTHORIZED" } };
     if (request.method === "GET" && request.path === "/health") {
       const healthy = await this.provider.health();
@@ -61,7 +64,12 @@ export class GatewayService {
     try {
       if (request.path === "/v1/inference") {
         const input = InferenceRequestSchema.parse(request.body);
-        assertValidImages(input.images ?? [], this.maxImageBytes, 8);
+        assertValidImages(
+          input.images ?? [],
+          this.maxImageBytes,
+          8,
+          MAX_TOTAL_IMAGE_BYTES,
+        );
         const output = await this.semaphore.use(() =>
           this.provider.infer(input),
         );
@@ -101,7 +109,7 @@ export class GatewayService {
     }
   }
 
-  private authenticated(header?: string): boolean {
+  isAuthenticated(header?: string): boolean {
     const candidate = header?.startsWith("Bearer ") ? header.slice(7) : "";
     const actual = Buffer.from(candidate);
     const expected = Buffer.from(this.token);

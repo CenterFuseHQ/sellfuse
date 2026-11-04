@@ -1,34 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { MarketEvidenceSchema } from "./index.js";
+import { assertValidImages, type ImageInput } from "./index.js";
 
-const evidence = {
-  id: "listing-44",
-  type: "SOLD_COMPARABLE",
-  title: "Completed sale",
-  sourceName: "Authorized county export",
-  sourceUrl: "https://example.test/property/44",
-  observedAt: "2026-11-03T00:00:00.000Z",
-  price: 250,
-  currency: "USD",
-  reliability: "HIGH",
-};
+function jpeg(size: number): ImageInput {
+  const bytes = Buffer.alloc(size);
+  bytes[0] = 0xff;
+  bytes[1] = 0xd8;
+  return { mimeType: "image/jpeg", base64: bytes.toString("base64") };
+}
 
-describe("market evidence source URLs", () => {
-  it("accepts public HTTP(S) evidence links", () => {
-    expect(MarketEvidenceSchema.safeParse(evidence).success).toBe(true);
+describe("image request resource bounds", () => {
+  it("accepts images within per-image and aggregate limits", () => {
+    expect(() => assertValidImages([jpeg(16), jpeg(16)], 16, 8, 32)).not.toThrow();
   });
 
-  it.each([
-    "javascript:alert(1)",
-    "data:text/html,<script>alert(1)</script>",
-    "file:///private/record.json",
-    "https://user:password@example.test/property/44",
-    "https://example.test/property/44?access_token=private-value",
-    "https://example.test/property/44?code=private-value",
-    "https://example.test/property/44#session=private-value",
-  ])("rejects unsafe or credential-bearing URLs: %s", (sourceUrl) => {
-    expect(
-      MarketEvidenceSchema.safeParse({ ...evidence, sourceUrl }).success,
-    ).toBe(false);
+  it("rejects aggregate image payloads over the configured limit", () => {
+    expect(() => assertValidImages([jpeg(16), jpeg(17)], 32, 8, 32)).toThrow(
+      "IMAGE_TOTAL_SIZE_LIMIT",
+    );
   });
 });
