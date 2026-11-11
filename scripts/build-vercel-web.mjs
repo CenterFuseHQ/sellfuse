@@ -15,6 +15,11 @@ const html = renderAppPage(apiUrl, resolveProductUrls(hostedEnvironment));
 
 await mkdir("dist-web", { recursive: true });
 await writeFile("dist-web/index.html", html, "utf8");
+await writeFile(
+  "dist-web/health.json",
+  JSON.stringify({ status: "ok", service: "sellfuse-web" }),
+  "utf8",
+);
 process.stdout.write(
   `SellFuse Vercel web build written (apiConfigured=${String(Boolean(apiUrl))})\n`,
 );

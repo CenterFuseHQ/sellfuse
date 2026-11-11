@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { createServer, type Server } from "node:http";
+import type { Server } from "node:http";
 import { createSellFuseWebServer } from "./http-server.js";
-import sellFuseVercelHandler from "./server.js";
 
 const servers: Server[] = [];
 
@@ -29,22 +28,6 @@ async function startServer(html: string): Promise<string> {
 }
 
 describe("SellFuse web health contract", () => {
-  it("exports the HTTP handler used by Vercel Functions", async () => {
-    const server = createServer(sellFuseVercelHandler);
-    servers.push(server);
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject);
-      server.listen(0, "127.0.0.1", resolve);
-    });
-    const address = server.address();
-    if (!address || typeof address === "string") throw new Error("Test server did not bind to a TCP port");
-
-    const response = await fetch(`http://127.0.0.1:${address.port}/health`);
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ status: "ok", service: "sellfuse-web" });
-  });
-
   it("exposes only its service identity at the public liveness route", async () => {
     const baseUrl = await startServer("<main>SellFuse</main>");
 

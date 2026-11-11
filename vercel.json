@@ -1,5 +1,8 @@
 {
   "installCommand": "npm ci --ignore-scripts",
   "buildCommand": "npm run build:packages && npm run build -w @sellfuse/web && node scripts/build-vercel-web.mjs",
-  "outputDirectory": "dist-web"
+  "outputDirectory": "dist-web",
+  "rewrites": [
+    { "source": "/health", "destination": "/health.json" }
+  ]
 }

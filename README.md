@@ -22,6 +22,8 @@ SellFuse is an independent source repository. The umbrella site and buyer produc
 
 The API and AI gateway expose unauthenticated `GET /health` liveness endpoints. They return only service availability and no account, listing, or inference data.
 
+The web app also exposes `GET /health` with `{ "status": "ok", "service": "sellfuse-web" }`. The self-hosted web server serves it directly; the Vercel static deployment emits the same response from its build output. It confirms the public web surface is available, not the API, database, or seller workflow.
+
 ## Quick start
 
 Requirements: Node.js 20.9+, npm 10+, and optionally Ollama or Docker for local AI.
