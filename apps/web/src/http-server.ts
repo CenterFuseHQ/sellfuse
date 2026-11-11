@@ -1,7 +1,7 @@
-import { createServer, type Server } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 
-export function createSellFuseWebServer(html: string): Server {
-  return createServer((request, response) => {
+export function createSellFuseWebHandler(html: string) {
+  return (request: IncomingMessage, response: ServerResponse) => {
     const pathname = new URL(request.url ?? "/", "http://sellfuse.local").pathname;
     if (request.method === "GET" && pathname === "/health") {
       response
@@ -33,5 +33,9 @@ export function createSellFuseWebServer(html: string): Server {
         "referrer-policy": "same-origin",
       })
       .end(html);
-  });
+  };
+}
+
+export function createSellFuseWebServer(html: string): Server {
+  return createServer(createSellFuseWebHandler(html));
 }
